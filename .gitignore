@@ -1,3 +1,8 @@
+# env
+.env
+*.env
+*.env.local
+
 # Dependencies
 node_modules/
 **/node_modules/
@@ -8,11 +13,21 @@ node_modules/
 **/ios/*.xcworkspace/xcuserdata/
 **/ios/*.xcodeproj/xcuserdata/
 **/ios/*.xcodeproj/project.xcworkspace/xcshareddata/
+**/.xcode.env.local
+
+# Pods/build
+**/ios/Pods/
+**/ios/build/
+**/android/.gradle/
+**/android/app/build/
+**/android/build/
 
 # Android
 **/android/.gradle/
 **/android/app/build/
 **/android/build/
+**/debug.keystore
+**/.!*.keystore
 
 # Environment
 .env
