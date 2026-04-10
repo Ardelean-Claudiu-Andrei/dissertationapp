@@ -1,0 +1,29 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# iOS
+**/ios/Pods/
+**/ios/build/
+**/ios/*.xcworkspace/xcuserdata/
+**/ios/*.xcodeproj/xcuserdata/
+**/ios/*.xcodeproj/project.xcworkspace/xcshareddata/
+
+# Android
+**/android/.gradle/
+**/android/app/build/
+**/android/build/
+
+# Environment
+.env
+**/.env
+
+# Build output
+dist/
+build/
+
+# Misc
+*.log
+.DS_Store
+yap/
+.claude/
