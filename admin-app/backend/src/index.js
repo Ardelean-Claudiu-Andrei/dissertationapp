@@ -9,6 +9,7 @@ const swaggerUi = require('swagger-ui-express');
 const parseHeaders = require('./middleware/parseHeaders');
 const eventLogger = require('./middleware/eventLogger');
 
+const authRoutes = require('./routes/auth');
 const usersRoutes = require('./routes/users');
 const pollsRoutes = require('./routes/polls');
 const flagsRoutes = require('./routes/flags');
@@ -90,8 +91,10 @@ app.use(cors());
 app.use(morgan('dev'));
 app.use(express.json());
 app.use(parseHeaders);
+app.use(eventLogger); // must be before routes so it can attach res.on('finish')
 
 // Public API (consumed by mobile app)
+app.use('/api/auth', authRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/polls', pollsRoutes);
 app.use('/api/flags', flagsRoutes);
@@ -101,9 +104,6 @@ app.use('/admin/polls', adminPollsRoutes);
 app.use('/admin/flags', adminFlagsRoutes);
 app.use('/admin/events', adminEventsRoutes);
 app.use('/admin/users', adminUsersRoutes);
-
-// Event logging runs after all routes
-app.use(eventLogger);
 
 app.get('/health', (req, res) => res.json({ status: 'ok' }));
 

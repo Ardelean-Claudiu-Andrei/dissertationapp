@@ -2,15 +2,20 @@ CREATE DATABASE IF NOT EXISTS dissertationapp CHARACTER SET utf8mb4 COLLATE utf8
 USE dissertationapp;
 
 CREATE TABLE IF NOT EXISTS users (
-  id          CHAR(36)     NOT NULL,
-  device_id   VARCHAR(255) NOT NULL,
-  app_version VARCHAR(20)  NOT NULL DEFAULT '1.0.0',
-  country     VARCHAR(10)  NOT NULL DEFAULT 'RO',
-  cohort      VARCHAR(50)  NOT NULL DEFAULT 'cohort_a',
-  created_at  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  updated_at  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  id            CHAR(36)     NOT NULL,
+  device_id     VARCHAR(255) NOT NULL,
+  email         VARCHAR(255) NULL,
+  password_hash VARCHAR(255) NULL,
+  first_name    VARCHAR(100) NULL,
+  last_name     VARCHAR(100) NULL,
+  app_version   VARCHAR(20)  NOT NULL DEFAULT '1.0.0',
+  country       VARCHAR(10)  NOT NULL DEFAULT 'RO',
+  cohort        VARCHAR(50)  NOT NULL DEFAULT 'cohort_a',
+  created_at    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (id),
-  UNIQUE KEY uq_device_id (device_id)
+  UNIQUE KEY uq_device_id (device_id),
+  UNIQUE KEY uq_email (email)
 ) ENGINE=InnoDB;
 
 CREATE TABLE IF NOT EXISTS polls (
