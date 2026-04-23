@@ -17,6 +17,7 @@ const adminPollsRoutes = require('./routes/admin/polls');
 const adminFlagsRoutes = require('./routes/admin/flags');
 const adminEventsRoutes = require('./routes/admin/events');
 const adminUsersRoutes = require('./routes/admin/users');
+const adminStatsRoutes = require('./routes/admin/stats');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -104,6 +105,7 @@ app.use('/admin/polls', adminPollsRoutes);
 app.use('/admin/flags', adminFlagsRoutes);
 app.use('/admin/events', adminEventsRoutes);
 app.use('/admin/users', adminUsersRoutes);
+app.use('/admin/stats', adminStatsRoutes);
 
 app.get('/health', (req, res) => res.json({ status: 'ok' }));
 

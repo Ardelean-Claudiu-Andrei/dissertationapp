@@ -150,7 +150,7 @@ export default function ProfileScreen() {
         <View style={styles.statsRow}>
           <StatCard value={voteCount} label="Votes cast" />
           <StatCard value={APP_VERSION} label="App version" />
-          <StatCard value={cohort !== '—' ? cohort.replace('cohort_', '') : '—'} label="Cohort" />
+          <StatCard value={cohort} label="Cohort" />
         </View>
 
         {/* Edit profile */}

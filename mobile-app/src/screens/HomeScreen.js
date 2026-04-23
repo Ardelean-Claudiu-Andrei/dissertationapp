@@ -11,15 +11,28 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from '../api/client';
+import { APP_VERSION } from '../config';
 import { useDeviceId } from '../hooks/useDeviceId';
+import { useFlags } from '../context/FlagsContext';
+import VersionSwitcher from '../components/VersionSwitcher';
 
 export default function HomeScreen({ navigation }) {
   const deviceId = useDeviceId();
+  const { updateFlags } = useFlags();
   const [polls, setPolls] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
   const [votedPollIds, setVotedPollIds] = useState(new Set());
+  const [tapCount, setTapCount] = useState(0);
+  const [showSwitcher, setShowSwitcher] = useState(false);
+  const [currentVersion, setCurrentVersion] = useState(APP_VERSION);
+
+  useEffect(() => {
+    AsyncStorage.getItem('app_version_override').then((v) => {
+      if (v) setCurrentVersion(v);
+    });
+  }, []);
 
   const register = useCallback(async () => {
     if (!deviceId) return;
@@ -28,6 +41,8 @@ export default function HomeScreen({ navigation }) {
 
       await AsyncStorage.setItem('user_id', data.user.id);
       if (data.user.cohort) await AsyncStorage.setItem('user_cohort', data.user.cohort);
+
+      updateFlags(data.flags);
 
       const hasVersionGate = data.flags?.some((f) => f.name === 'version_gate');
       if (hasVersionGate) {
@@ -68,6 +83,21 @@ export default function HomeScreen({ navigation }) {
     loadPolls();
   }, [loadPolls]);
 
+  function handleTitleTap() {
+    const next = tapCount + 1;
+    setTapCount(next);
+    if (next >= 5) {
+      setTapCount(0);
+      setShowSwitcher(true);
+    }
+  }
+
+  async function handleVersionChange(newVersion) {
+    setCurrentVersion(newVersion);
+    setLoading(true);
+    register();
+  }
+
   if (loading) {
     return (
       <View style={styles.centered}>
@@ -92,7 +122,9 @@ export default function HomeScreen({ navigation }) {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#1a1a2e" />}
         ListHeaderComponent={
           <View style={styles.headerWrap}>
-            <Text style={styles.header}>Active Polls</Text>
+            <TouchableOpacity onPress={handleTitleTap} activeOpacity={1}>
+              <Text style={styles.header}>Active Polls</Text>
+            </TouchableOpacity>
             <Text style={styles.subheader}>{polls.length} poll{polls.length !== 1 ? 's' : ''} available</Text>
           </View>
         }
@@ -127,6 +159,14 @@ export default function HomeScreen({ navigation }) {
           );
         }}
         contentContainerStyle={styles.list}
+      />
+      <View style={styles.versionFooter}>
+        <Text style={styles.versionFooterText}>v{currentVersion}</Text>
+      </View>
+      <VersionSwitcher
+        visible={showSwitcher}
+        onClose={() => setShowSwitcher(false)}
+        onVersionChange={handleVersionChange}
       />
     </SafeAreaView>
   );
@@ -163,4 +203,6 @@ const styles = StyleSheet.create({
   emptyIcon: { fontSize: 48, marginBottom: 12 },
   emptyText: { fontSize: 17, fontWeight: '600', color: '#343a40', marginBottom: 6 },
   emptySubtext: { fontSize: 14, color: '#6c757d' },
+  versionFooter: { position: 'absolute', bottom: 110, right: 16 },
+  versionFooterText: { fontSize: 11, color: '#dee2e6', fontWeight: '500' },
 });

@@ -1,26 +1,23 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Platform } from 'react-native';
+import { DEV_API_HOST, APP_VERSION } from '../config';
 
-// Emulator: 10.0.2.2 (Android) / localhost (iOS) points to host machine.
-// Physical device: use your Mac's LAN IP (e.g. 192.168.1.x).
-const DEV_HOST = '192.168.1.14'; // Mac's LAN IP
+export { APP_VERSION };
+
 const BASE_URL = __DEV__
-  ? `http://${DEV_HOST}:3001`
+  ? `http://${DEV_API_HOST}:3001`
   : 'https://your-production-api.example.com';
-
-export const APP_VERSION = '1.0.0';
 
 const api = axios.create({ baseURL: BASE_URL });
 
-// Inject device_id, app_version, and JWT token on every request
 api.interceptors.request.use(async (config) => {
-  const [deviceId, token] = await Promise.all([
+  const [deviceId, token, versionOverride] = await Promise.all([
     AsyncStorage.getItem('device_id'),
     AsyncStorage.getItem('auth_token'),
+    AsyncStorage.getItem('app_version_override'),
   ]);
   if (deviceId) config.headers['x-device-id'] = deviceId;
-  config.headers['x-app-version'] = APP_VERSION;
+  config.headers['x-app-version'] = versionOverride || APP_VERSION;
   if (token) config.headers['Authorization'] = `Bearer ${token}`;
   return config;
 });

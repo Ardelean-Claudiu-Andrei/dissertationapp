@@ -4,8 +4,10 @@ import PollsPage from './pages/PollsPage.jsx';
 import FlagsPage from './pages/FlagsPage.jsx';
 import EventLogPage from './pages/EventLogPage.jsx';
 import UsersPage from './pages/UsersPage.jsx';
+import DashboardPage from './pages/DashboardPage.jsx';
 
 const NAV_ITEMS = [
+  { to: '/dashboard', label: 'Dashboard', icon: '📈' },
   { to: '/', label: 'Polls', icon: '🗳️', end: true },
   { to: '/flags', label: 'Feature Flags', icon: '🚩' },
   { to: '/events', label: 'Event Log', icon: '📋' },
@@ -76,6 +78,7 @@ export default function App() {
           <Header />
           <div style={styles.content}>
             <Routes>
+              <Route path="/dashboard" element={<DashboardPage />} />
               <Route path="/" element={<PollsPage />} />
               <Route path="/flags" element={<FlagsPage />} />
               <Route path="/events" element={<EventLogPage />} />
