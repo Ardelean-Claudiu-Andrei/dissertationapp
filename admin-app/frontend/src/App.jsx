@@ -5,11 +5,13 @@ import FlagsPage from './pages/FlagsPage.jsx';
 import EventLogPage from './pages/EventLogPage.jsx';
 import UsersPage from './pages/UsersPage.jsx';
 import DashboardPage from './pages/DashboardPage.jsx';
+import VersionsPage from './pages/VersionsPage.jsx';
 
 const NAV_ITEMS = [
   { to: '/dashboard', label: 'Dashboard', icon: '📈' },
   { to: '/', label: 'Polls', icon: '🗳️', end: true },
   { to: '/flags', label: 'Feature Flags', icon: '🚩' },
+  { to: '/versions', label: 'Versions', icon: '🔢' },
   { to: '/events', label: 'Event Log', icon: '📋' },
   { to: '/users', label: 'Users', icon: '👥' },
 ];
@@ -81,6 +83,7 @@ export default function App() {
               <Route path="/dashboard" element={<DashboardPage />} />
               <Route path="/" element={<PollsPage />} />
               <Route path="/flags" element={<FlagsPage />} />
+              <Route path="/versions" element={<VersionsPage />} />
               <Route path="/events" element={<EventLogPage />} />
               <Route path="/users" element={<UsersPage />} />
             </Routes>

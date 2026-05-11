@@ -8,10 +8,12 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from '../../api/client';
 import { useAuth } from '../../context/AuthContext';
 import { useFlags } from '../../context/FlagsContext';
+import { useVersion } from '../../context/VersionContext';
 
 export default function LoginScreen({ navigation }) {
   const { signIn } = useAuth();
   const { updateFlags } = useFlags();
+  const { updateVersionConfig } = useVersion();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -32,6 +34,7 @@ export default function LoginScreen({ navigation }) {
         device_id: deviceId,
       });
       if (data.flags) updateFlags(data.flags);
+      if (data.user?.version_config) updateVersionConfig(data.user.version_config);
       await signIn(data.token, data.user);
     } catch (err) {
       setError(err.response?.data?.error || 'Login failed. Check your connection.');
@@ -73,6 +76,7 @@ export default function LoginScreen({ navigation }) {
               placeholder="••••••••"
               placeholderTextColor="#adb5bd"
               secureTextEntry
+              textContentType="oneTimeCode"
             />
 
             <TouchableOpacity

@@ -5,6 +5,12 @@ import DataTable from '../components/DataTable.jsx';
 const cohortColors = { cohort_a: '#4361ee', cohort_b: '#7209b7', cohort_c: '#f72585' };
 const cohortBg = { cohort_a: '#eef1ff', cohort_b: '#f5eeff', cohort_c: '#fff0f8' };
 
+const COHORT_VERSION = {
+  cohort_a: { version: 'V1', label: 'Stable', color: '#1a1a2e' },
+  cohort_b: { version: 'V2', label: 'Beta',   color: '#2d6a4f' },
+  cohort_c: { version: 'V3', label: 'Canary', color: '#7209b7' },
+};
+
 function StatCard({ label, value, icon, color = '#1a1a2e', sub }) {
   return (
     <div style={{
@@ -45,7 +51,25 @@ export default function UsersPage() {
       key: 'device_id', label: 'Device ID',
       render: (val) => <code style={{ fontSize: '0.75rem', color: '#6c757d' }}>{val?.slice(0, 12)}…</code>,
     },
-    { key: 'app_version', label: 'Version', render: (val) => <code style={{ fontSize: '0.82rem' }}>{val}</code> },
+    { key: 'app_version', label: 'App Build', render: (val) => <code style={{ fontSize: '0.82rem', color: '#6c757d' }}>{val}</code> },
+    {
+      key: 'cohort', label: 'Assigned Version',
+      render: (val) => {
+        const v = COHORT_VERSION[val];
+        if (!v) return <span style={{ color: '#adb5bd' }}>—</span>;
+        return (
+          <span style={{
+            display: 'inline-flex', alignItems: 'center', gap: '0.35rem',
+            padding: '0.25rem 0.65rem', borderRadius: 20,
+            background: v.color + '18',
+            color: v.color,
+            fontSize: '0.75rem', fontWeight: '700',
+          }}>
+            {v.version} <span style={{ fontWeight: '500', opacity: 0.8 }}>{v.label}</span>
+          </span>
+        );
+      },
+    },
     { key: 'country', label: 'Country' },
     {
       key: 'cohort', label: 'Cohort',
@@ -93,7 +117,14 @@ export default function UsersPage() {
                 boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
               }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                  <span style={{ fontWeight: '700', color: cohortColors[cohort] || '#6c757d', fontSize: '0.875rem' }}>{cohort}</span>
+                  <div>
+                    <span style={{ fontWeight: '700', color: cohortColors[cohort] || '#6c757d', fontSize: '0.875rem' }}>{cohort}</span>
+                    {COHORT_VERSION[cohort] && (
+                      <span style={{ marginLeft: '0.4rem', fontSize: '0.72rem', color: COHORT_VERSION[cohort].color, fontWeight: '600', opacity: 0.85 }}>
+                        → {COHORT_VERSION[cohort].version} {COHORT_VERSION[cohort].label}
+                      </span>
+                    )}
+                  </div>
                   <span style={{ fontWeight: '800', fontSize: '1.1rem', color: '#1a1a2e' }}>{count}</span>
                 </div>
                 <div style={{ height: 6, background: '#e9ecef', borderRadius: 3, overflow: 'hidden' }}>

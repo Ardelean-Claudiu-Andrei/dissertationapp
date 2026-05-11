@@ -1,11 +1,12 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Platform, ActivityIndicator } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 
 import { AuthProvider, useAuth } from '../context/AuthContext';
-import { FlagsProvider } from '../context/FlagsContext';
+import { FlagsProvider, useFlags } from '../context/FlagsContext';
+import { VersionProvider, useVersion } from '../context/VersionContext';
 
 import LoginScreen from '../screens/auth/LoginScreen';
 import RegisterScreen from '../screens/auth/RegisterScreen';
@@ -37,6 +38,8 @@ function PollsStack() {
 }
 
 function CustomTabBar({ state, descriptors, navigation }) {
+  const { versionConfig, primaryColor, isDarkMode } = useVersion();
+  const isLeftHanded = !!versionConfig.features?.left_handed_usage;
   const tabs = [
     { name: 'PollsTab', icon: '🗳️', label: 'Polls' },
     { name: 'ActivityTab', icon: '📊', label: 'Activity' },
@@ -45,7 +48,14 @@ function CustomTabBar({ state, descriptors, navigation }) {
 
   return (
     <View style={styles.tabBarOuter}>
-      <View style={styles.tabBarInner}>
+      <View style={[
+        styles.tabBarInner,
+        {
+          flexDirection: isLeftHanded ? 'row-reverse' : 'row',
+          backgroundColor: isDarkMode ? 'rgba(24, 24, 42, 0.96)' : 'rgba(255, 255, 255, 0.92)',
+          borderColor: isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.9)',
+        },
+      ]}>
         {state.routes.map((route, index) => {
           const tab = tabs[index];
           const isFocused = state.index === index;
@@ -68,10 +78,14 @@ function CustomTabBar({ state, descriptors, navigation }) {
               style={styles.tabItem}
               activeOpacity={0.7}
             >
-              <View style={[styles.tabIconWrap, isFocused && styles.tabIconWrapActive]}>
+              <View style={[styles.tabIconWrap, isFocused && { backgroundColor: primaryColor + '22' }]}>
                 <Text style={styles.tabIcon}>{tab.icon}</Text>
               </View>
-              <Text style={[styles.tabLabel, isFocused && styles.tabLabelActive]}>
+              <Text style={[
+                styles.tabLabel,
+                { color: isDarkMode ? '#adb5bd' : '#adb5bd' },
+                isFocused && { color: isDarkMode ? '#f8f9fa' : primaryColor, fontWeight: '700' },
+              ]}>
                 {tab.label}
               </Text>
             </TouchableOpacity>
@@ -102,7 +116,14 @@ function AuthStack() {
 }
 
 function RootNavigator() {
-  const { token, loading } = useAuth();
+  const { token, loading, user } = useAuth();
+  const { refreshFlags } = useFlags();
+
+  useEffect(() => {
+    if (token && user?.id) {
+      refreshFlags(user.id).catch(() => {});
+    }
+  }, [token, user?.id, refreshFlags]);
 
   if (loading) {
     return (
@@ -133,11 +154,13 @@ function RootNavigator() {
 export default function AppNavigator() {
   return (
     <FlagsProvider>
-      <AuthProvider>
-        <NavigationContainer>
-          <RootNavigator />
-        </NavigationContainer>
-      </AuthProvider>
+      <VersionProvider>
+        <AuthProvider>
+          <NavigationContainer>
+            <RootNavigator />
+          </NavigationContainer>
+        </AuthProvider>
+      </VersionProvider>
     </FlagsProvider>
   );
 }
@@ -179,10 +202,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: 2,
   },
-  tabIconWrapActive: {
-    backgroundColor: 'rgba(26, 26, 46, 0.1)',
-  },
   tabIcon: { fontSize: 20 },
   tabLabel: { fontSize: 11, color: '#adb5bd', fontWeight: '500' },
-  tabLabelActive: { color: '#1a1a2e', fontWeight: '700' },
 });

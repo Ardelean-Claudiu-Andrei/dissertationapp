@@ -7,9 +7,13 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from '../../api/client';
 import { useAuth } from '../../context/AuthContext';
+import { useFlags } from '../../context/FlagsContext';
+import { useVersion } from '../../context/VersionContext';
 
 export default function RegisterScreen({ navigation }) {
   const { signIn } = useAuth();
+  const { updateFlags } = useFlags();
+  const { updateVersionConfig } = useVersion();
   const [form, setForm] = useState({ first_name: '', last_name: '', email: '', password: '', confirm: '' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -42,6 +46,8 @@ export default function RegisterScreen({ navigation }) {
         last_name: form.last_name.trim() || undefined,
         device_id: deviceId,
       });
+      if (data.flags) updateFlags(data.flags);
+      if (data.user?.version_config) updateVersionConfig(data.user.version_config);
       await signIn(data.token, data.user);
     } catch (err) {
       setError(err.response?.data?.error || 'Registration failed. Check your connection.');
@@ -87,10 +93,10 @@ export default function RegisterScreen({ navigation }) {
             />
 
             <Text style={styles.label}>Password * (min 6 characters)</Text>
-            <TextInput style={styles.input} value={form.password} onChangeText={set('password')} placeholder="••••••••" placeholderTextColor="#adb5bd" secureTextEntry />
+            <TextInput style={styles.input} value={form.password} onChangeText={set('password')} placeholder="••••••••" placeholderTextColor="#adb5bd" secureTextEntry textContentType="oneTimeCode" />
 
             <Text style={styles.label}>Confirm password *</Text>
-            <TextInput style={styles.input} value={form.confirm} onChangeText={set('confirm')} placeholder="••••••••" placeholderTextColor="#adb5bd" secureTextEntry />
+            <TextInput style={styles.input} value={form.confirm} onChangeText={set('confirm')} placeholder="••••••••" placeholderTextColor="#adb5bd" secureTextEntry textContentType="oneTimeCode" />
 
             <TouchableOpacity
               style={[styles.btn, loading && styles.btnDisabled]}

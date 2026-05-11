@@ -11,9 +11,12 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from '../api/client';
+import { useVersion } from '../context/VersionContext';
 
 export default function PollScreen({ route, navigation }) {
   const { pollId } = route.params;
+  const { versionConfig, primaryColor, isDarkMode } = useVersion();
+  const showVoteCount = versionConfig.features?.show_vote_count ?? true;
 
   const [poll, setPoll] = useState(null);
   const [options, setOptions] = useState([]);
@@ -73,38 +76,52 @@ export default function PollScreen({ route, navigation }) {
     }
   }
 
+  const bgColor = isDarkMode ? '#0d0d1a' : '#f5f5f5';
+  const titleColor = isDarkMode ? '#f8f9fa' : '#1a1a2e';
+  const textColor = isDarkMode ? '#e9ecef' : '#343a40';
+  const mutedColor = isDarkMode ? '#adb5bd' : '#6c757d';
+  const cardColor = isDarkMode ? '#18182a' : '#fff';
+  const borderColor = isDarkMode ? '#2a2a40' : '#e9ecef';
+
   if (loading) {
-    return <View style={styles.centered}><ActivityIndicator size="large" color="#1a1a2e" /></View>;
+    return <View style={[styles.centered, { backgroundColor: bgColor }]}><ActivityIndicator size="large" color={primaryColor} /></View>;
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: bgColor }]}>
       <ScrollView contentContainerStyle={styles.scroll}>
-        <Text style={styles.title}>{poll?.title}</Text>
-        {poll?.description ? <Text style={styles.description}>{poll.description}</Text> : null}
+        <Text style={[styles.title, { color: titleColor }]}>{poll?.title}</Text>
+        {poll?.description ? <Text style={[styles.description, { color: mutedColor }]}>{poll.description}</Text> : null}
 
-        <Text style={styles.sectionLabel}>Choose an option:</Text>
+        <Text style={[styles.sectionLabel, { color: mutedColor }]}>Choose an option:</Text>
         {options.map((option) => {
           const selected = selectedOptionId === option.id;
           return (
             <TouchableOpacity
               key={option.id}
-              style={[styles.option, selected && styles.optionSelected]}
+              style={[
+                styles.option,
+                { backgroundColor: cardColor, borderColor },
+                selected && { borderColor: primaryColor, backgroundColor: primaryColor + (isDarkMode ? '22' : '11') },
+              ]}
               onPress={() => setSelectedOptionId(option.id)}
               activeOpacity={0.8}
             >
-              <View style={[styles.radio, selected && styles.radioSelected]}>
-                {selected && <View style={styles.radioDot} />}
+              <View style={[styles.radio, selected && { borderColor: primaryColor }]}>
+                {selected && <View style={[styles.radioDot, { backgroundColor: primaryColor }]} />}
               </View>
-              <Text style={[styles.optionText, selected && styles.optionTextSelected]}>
+              <Text style={[styles.optionText, { color: textColor }, selected && { fontWeight: '600', color: primaryColor }]}>
                 {option.text}
               </Text>
+              {showVoteCount && option.vote_count != null && (
+                <Text style={[styles.voteCountBadge, { color: mutedColor }]}>{option.vote_count}</Text>
+              )}
             </TouchableOpacity>
           );
         })}
 
         <TouchableOpacity
-          style={[styles.voteBtn, (!selectedOptionId || submitting) && styles.voteBtnDisabled]}
+          style={[styles.voteBtn, { backgroundColor: primaryColor, shadowColor: primaryColor }, (!selectedOptionId || submitting) && styles.voteBtnDisabled]}
           onPress={handleVote}
           disabled={!selectedOptionId || submitting}
           activeOpacity={0.8}
@@ -151,6 +168,7 @@ const styles = StyleSheet.create({
   radioDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: '#1a1a2e' },
   optionText: { fontSize: 15, color: '#343a40', flex: 1 },
   optionTextSelected: { fontWeight: '600', color: '#1a1a2e' },
+  voteCountBadge: { fontSize: 12, color: '#6c757d', fontWeight: '600', marginLeft: 8 },
   voteBtn: {
     backgroundColor: '#e94560',
     borderRadius: 14,

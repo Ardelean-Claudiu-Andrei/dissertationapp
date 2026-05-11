@@ -4,12 +4,12 @@ import {
   SafeAreaView, ScrollView, TouchableOpacity, Animated, Share,
 } from 'react-native';
 import api from '../api/client';
-import { useFlags } from '../context/FlagsContext';
+import { useVersion } from '../context/VersionContext';
 
 export default function ResultsScreen({ route, navigation }) {
   const { pollId } = route.params;
-  const { hasFlag } = useFlags();
-  const isEnhanced = hasFlag('enhanced_results');
+  const { versionConfig, primaryColor, isDarkMode } = useVersion();
+  const isEnhanced = !!versionConfig.features?.results_chart;
 
   const [results, setResults] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -51,19 +51,26 @@ export default function ResultsScreen({ route, navigation }) {
   }, [pollId, isEnhanced]);
 
   if (loading) {
-    return <View style={styles.centered}><ActivityIndicator size="large" color="#1a1a2e" /></View>;
+    return <View style={[styles.centered, { backgroundColor: isDarkMode ? '#0d0d1a' : '#f5f5f5' }]}><ActivityIndicator size="large" color={primaryColor} /></View>;
   }
 
   const counts = results?.counts || [];
   const total = counts.reduce((sum, c) => sum + (c.vote_count || 0), 0);
   const winner = counts[0];
 
+  const bgColor = isDarkMode ? '#0d0d1a' : '#f5f5f5';
+  const titleColor = isDarkMode ? '#f8f9fa' : '#1a1a2e';
+  const textColor = isDarkMode ? '#e9ecef' : '#343a40';
+  const mutedColor = isDarkMode ? '#adb5bd' : '#6c757d';
+  const cardColor = isDarkMode ? '#18182a' : '#fff';
+  const borderColor = isDarkMode ? '#2a2a40' : '#e9ecef';
+
   // ─── BASIC MODE (v1.0.0, no flag) ────────────────────────────────────────
   if (!isEnhanced) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={[styles.container, { backgroundColor: bgColor }]}>
         <ScrollView contentContainerStyle={styles.scroll}>
-          <Text style={styles.title}>Results</Text>
+          <Text style={[styles.title, { color: titleColor }]}>Results</Text>
           {results?.fromCache && <Text style={styles.cacheBadge}>Served from cache</Text>}
 
           {counts.map((item) => {
@@ -71,18 +78,18 @@ export default function ResultsScreen({ route, navigation }) {
             return (
               <View key={item.option_id} style={styles.resultRow}>
                 <View style={styles.labelRow}>
-                  <Text style={styles.optionText}>{item.text}</Text>
-                  <Text style={styles.pctText}>{pct}%</Text>
+                  <Text style={[styles.optionText, { color: textColor }]}>{item.text}</Text>
+                  <Text style={[styles.pctText, { color: titleColor }]}>{pct}%</Text>
                 </View>
-                <View style={styles.barTrack}>
+                <View style={[styles.barTrack, { backgroundColor: borderColor }]}>
                   <View style={[styles.barFill, { width: `${pct}%` }]} />
                 </View>
-                <Text style={styles.voteCount}>{item.vote_count} vote{item.vote_count !== 1 ? 's' : ''}</Text>
+                <Text style={[styles.voteCount, { color: mutedColor }]}>{item.vote_count} vote{item.vote_count !== 1 ? 's' : ''}</Text>
               </View>
             );
           })}
 
-          <Text style={styles.total}>Total votes: {total}</Text>
+          <Text style={[styles.total, { color: mutedColor }]}>Total votes: {total}</Text>
           <TouchableOpacity style={styles.backBtn} onPress={() => navigation.navigate('Home')}>
             <Text style={styles.backBtnText}>Back to Polls</Text>
           </TouchableOpacity>
@@ -97,22 +104,22 @@ export default function ResultsScreen({ route, navigation }) {
     : null;
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: bgColor }]}>
       <ScrollView contentContainerStyle={styles.scroll}>
         <View style={styles.enhancedHeader}>
-          <Text style={styles.title}>Results</Text>
+          <Text style={[styles.title, { color: titleColor }]}>Results</Text>
           <View style={styles.statsRow}>
-            <View style={styles.statBox}>
-              <Text style={styles.statNum}>{total}</Text>
-              <Text style={styles.statLbl}>Total votes</Text>
+            <View style={[styles.statBox, { backgroundColor: cardColor }]}>
+              <Text style={[styles.statNum, { color: titleColor }]}>{total}</Text>
+              <Text style={[styles.statLbl, { color: mutedColor }]}>Total votes</Text>
             </View>
-            <View style={styles.statBox}>
-              <Text style={styles.statNum}>{counts.length}</Text>
-              <Text style={styles.statLbl}>Options</Text>
+            <View style={[styles.statBox, { backgroundColor: cardColor }]}>
+              <Text style={[styles.statNum, { color: titleColor }]}>{counts.length}</Text>
+              <Text style={[styles.statLbl, { color: mutedColor }]}>Options</Text>
             </View>
-            <View style={styles.statBox}>
-              <Text style={styles.statNum}>{secondsAgo !== null ? `${secondsAgo}s` : '—'}</Text>
-              <Text style={styles.statLbl}>Last update</Text>
+            <View style={[styles.statBox, { backgroundColor: cardColor }]}>
+              <Text style={[styles.statNum, { color: titleColor }]}>{secondsAgo !== null ? `${secondsAgo}s` : '—'}</Text>
+              <Text style={[styles.statLbl, { color: mutedColor }]}>Last update</Text>
             </View>
           </View>
           <View style={styles.enhancedBadge}>
@@ -129,19 +136,24 @@ export default function ResultsScreen({ route, navigation }) {
           return (
             <View
               key={item.option_id}
-              style={[styles.enhancedRow, isWinner && styles.enhancedRowWinner]}
+              style={[
+                styles.enhancedRow,
+                { backgroundColor: cardColor },
+                isWinner && styles.enhancedRowWinner,
+                isWinner && isDarkMode && { backgroundColor: '#251827' },
+              ]}
             >
               <View style={styles.labelRow}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
                   {isWinner && <Text style={styles.trophyIcon}>🏆 </Text>}
-                  <Text style={[styles.optionText, isWinner && styles.optionTextWinner]}>
+                  <Text style={[styles.optionText, { color: textColor }, isWinner && styles.optionTextWinner]}>
                     {item.text}
                   </Text>
                 </View>
-                <Text style={[styles.pctText, isWinner && styles.pctTextWinner]}>{pct}%</Text>
+                <Text style={[styles.pctText, { color: titleColor }, isWinner && styles.pctTextWinner]}>{pct}%</Text>
               </View>
 
-              <View style={styles.barTrack}>
+              <View style={[styles.barTrack, { backgroundColor: borderColor }]}>
                 <Animated.View
                   style={[
                     styles.barFill,
@@ -155,15 +167,15 @@ export default function ResultsScreen({ route, navigation }) {
                   ]}
                 />
               </View>
-              <Text style={styles.voteCount}>
+              <Text style={[styles.voteCount, { color: mutedColor }]}>
                 {item.vote_count} vote{item.vote_count !== 1 ? 's' : ''}
               </Text>
             </View>
           );
         })}
 
-        <Text style={styles.total}>Total votes: {total}</Text>
-        <Text style={styles.autoRefreshNote}>🔄 Auto-refreshes every 10 seconds</Text>
+        <Text style={[styles.total, { color: mutedColor }]}>Total votes: {total}</Text>
+        <Text style={[styles.autoRefreshNote, { color: mutedColor }]}>🔄 Auto-refreshes every 10 seconds</Text>
 
         <TouchableOpacity
           style={styles.shareBtn}

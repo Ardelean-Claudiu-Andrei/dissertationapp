@@ -4,7 +4,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { randomUUID } = require('crypto');
 const pool = require('../db');
-const { assignCohort } = require('../helpers/cohortAssigner');
+const { assignCohort, getVersionConfig } = require('../helpers/cohortAssigner');
 const { evaluateFlags } = require('../helpers/flagEvaluator');
 
 function signToken(userId) {
@@ -15,10 +15,15 @@ function signToken(userId) {
   );
 }
 
-// Strips sensitive fields before sending user to client
+// Strips sensitive fields and adds version config before sending user to client
 function sanitizeUser(user) {
   const { password_hash, ...safe } = user;
-  return safe;
+  const vc = getVersionConfig(safe.cohort);
+  return {
+    ...safe,
+    assigned_version: vc.version,
+    version_config: { version: vc.version, label: vc.label, theme: vc.theme, features: vc.features },
+  };
 }
 
 /**
@@ -50,6 +55,7 @@ function sanitizeUser(user) {
  */
 router.post('/register', async (req, res) => {
   const { email, password, first_name, last_name, device_id, app_version, country } = req.body;
+  const requestedAppVersion = app_version || req.appVersion || '1.0.0';
 
   if (!email || !password || !device_id) {
     return res.status(400).json({ error: 'email, password and device_id are required' });
@@ -66,32 +72,38 @@ router.post('/register', async (req, res) => {
     }
 
     const passwordHash = await bcrypt.hash(password, 10);
-    const cohort = assignCohort(device_id);
 
-    // Check if this device_id already has a row (anonymous user upgrading to account)
+    // Check if this device_id already has an anonymous row (no email) to upgrade
     const [existingDevice] = await pool.query('SELECT * FROM users WHERE device_id = ?', [device_id]);
 
     let user;
-    if (existingDevice.length > 0) {
-      // Upgrade existing anonymous user to a full account
+    if (existingDevice.length > 0 && !existingDevice[0].email) {
+      // Anonymous device row — upgrade it to a full account.
+      // Keep the existing cohort (already persisted, based on the row's id).
       await pool.query(
         `UPDATE users
          SET email = ?, password_hash = ?, first_name = ?, last_name = ?,
              app_version = ?, country = ?, updated_at = NOW()
          WHERE device_id = ?`,
         [email, passwordHash, first_name || null, last_name || null,
-         app_version || '1.0.0', country || 'RO', device_id]
+         requestedAppVersion, country || 'RO', device_id]
       );
       const [updated] = await pool.query('SELECT * FROM users WHERE device_id = ?', [device_id]);
       user = updated[0];
     } else {
+      // New user — generate UUID first, derive cohort from it
       const id = randomUUID();
+      const cohort = assignCohort(id);
+      // If the device_id is already claimed by another registered account, give this
+      // new row a synthetic device_id so the unique constraint doesn't block registration.
+      // Cohort is user-based (UUID), so this doesn't affect version assignment.
+      const effectiveDeviceId = existingDevice.length > 0 ? `virtual_${id}` : device_id;
       await pool.query(
         `INSERT INTO users (id, device_id, email, password_hash, first_name, last_name,
                             app_version, country, cohort, created_at, updated_at)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
-        [id, device_id, email, passwordHash, first_name || null, last_name || null,
-         app_version || '1.0.0', country || 'RO', cohort]
+        [id, effectiveDeviceId, email, passwordHash, first_name || null, last_name || null,
+         requestedAppVersion, country || 'RO', cohort]
       );
       const [created] = await pool.query('SELECT * FROM users WHERE id = ?', [id]);
       user = created[0];
@@ -162,14 +174,21 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ error: 'Invalid email or password' });
     }
 
-    // Update device_id and app_version on login (device may have changed)
-    const updates = { app_version: app_version || user.app_version };
+    // Update device_id and app_version on login.
+    // Only claim the device_id if it isn't already owned by a different account
+    // (multiple users can share the same simulator/device).
+    const newAppVersion = app_version || req.appVersion || user.app_version;
+    let newDeviceId = user.device_id;
     if (device_id && device_id !== user.device_id) {
-      updates.device_id = device_id;
+      const [takenBy] = await pool.query(
+        'SELECT id FROM users WHERE device_id = ? AND id != ?',
+        [device_id, user.id]
+      );
+      if (takenBy.length === 0) newDeviceId = device_id;
     }
     await pool.query(
       'UPDATE users SET device_id = ?, app_version = ?, updated_at = NOW() WHERE id = ?',
-      [updates.device_id || user.device_id, updates.app_version, user.id]
+      [newDeviceId, newAppVersion, user.id]
     );
 
     const [refreshed] = await pool.query('SELECT * FROM users WHERE id = ?', [user.id]);

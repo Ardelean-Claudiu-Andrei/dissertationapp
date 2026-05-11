@@ -36,7 +36,7 @@ export default function VersionSwitcher({ visible, onClose, onVersionChange }) {
                 {selected === v ? '● ' : '○ '}v{v}
                 {v === '1.0.0' && '  — Basic UI'}
                 {v === '1.5.0' && '  — Enhanced Results'}
-                {v === '2.0.0' && '  — Version Gate demo'}
+                {v === '2.0.0' && '  — Canary + dark mode'}
               </Text>
             </TouchableOpacity>
           ))}

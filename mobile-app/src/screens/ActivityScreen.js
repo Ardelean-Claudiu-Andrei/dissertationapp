@@ -11,10 +11,12 @@ import {
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import api from '../api/client';
+import { useVersion } from '../context/VersionContext';
 
 const statusColors = { active: '#28a745', closed: '#dc3545', draft: '#6c757d' };
 
 export default function ActivityScreen({ navigation }) {
+  const { primaryColor, isDarkMode } = useVersion();
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -45,12 +47,19 @@ export default function ActivityScreen({ navigation }) {
     loadHistory();
   }, [loadHistory]);
 
+  const bgColor = isDarkMode ? '#0d0d1a' : '#f5f5f5';
+  const cardColor = isDarkMode ? '#18182a' : '#fff';
+  const titleColor = isDarkMode ? '#f8f9fa' : '#1a1a2e';
+  const textColor = isDarkMode ? '#e9ecef' : '#343a40';
+  const mutedColor = isDarkMode ? '#adb5bd' : '#6c757d';
+  const softColor = isDarkMode ? '#111122' : '#f8f9fa';
+
   if (loading) {
     return (
-      <SafeAreaView style={styles.container}>
-        <Text style={styles.header}>My Activity</Text>
+      <SafeAreaView style={[styles.container, { backgroundColor: bgColor }]}>
+        <Text style={[styles.header, { color: titleColor }]}>My Activity</Text>
         <View style={styles.centered}>
-          <ActivityIndicator size="large" color="#1a1a2e" />
+          <ActivityIndicator size="large" color={primaryColor} />
         </View>
       </SafeAreaView>
     );
@@ -58,8 +67,8 @@ export default function ActivityScreen({ navigation }) {
 
   if (error) {
     return (
-      <SafeAreaView style={styles.container}>
-        <Text style={styles.header}>My Activity</Text>
+      <SafeAreaView style={[styles.container, { backgroundColor: bgColor }]}>
+        <Text style={[styles.header, { color: titleColor }]}>My Activity</Text>
         <View style={styles.centered}>
           <Text style={styles.errorText}>{error}</Text>
           <TouchableOpacity style={styles.retryBtn} onPress={() => { setLoading(true); loadHistory(); }}>
@@ -72,12 +81,12 @@ export default function ActivityScreen({ navigation }) {
 
   if (history.length === 0) {
     return (
-      <SafeAreaView style={styles.container}>
-        <Text style={styles.header}>My Activity</Text>
+      <SafeAreaView style={[styles.container, { backgroundColor: bgColor }]}>
+        <Text style={[styles.header, { color: titleColor }]}>My Activity</Text>
         <View style={styles.emptyWrap}>
           <Text style={styles.emptyIcon}>🗳️</Text>
-          <Text style={styles.emptyTitle}>No votes yet</Text>
-          <Text style={styles.emptySubtitle}>Your voting history will appear here after you vote on a poll.</Text>
+          <Text style={[styles.emptyTitle, { color: titleColor }]}>No votes yet</Text>
+          <Text style={[styles.emptySubtitle, { color: mutedColor }]}>Your voting history will appear here after you vote on a poll.</Text>
           <TouchableOpacity style={styles.cta} onPress={() => navigation.navigate('PollsTab')}>
             <Text style={styles.ctaText}>Browse Polls</Text>
           </TouchableOpacity>
@@ -87,38 +96,38 @@ export default function ActivityScreen({ navigation }) {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: bgColor }]}>
       <FlatList
         data={history}
         keyExtractor={(item) => item.id}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#1a1a2e" />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={primaryColor} />}
         ListHeaderComponent={
           <View style={styles.headerWrap}>
-            <Text style={styles.header}>My Activity</Text>
-            <Text style={styles.subheader}>{history.length} vote{history.length !== 1 ? 's' : ''} cast</Text>
+            <Text style={[styles.header, { color: titleColor }]}>My Activity</Text>
+            <Text style={[styles.subheader, { color: mutedColor }]}>{history.length} vote{history.length !== 1 ? 's' : ''} cast</Text>
           </View>
         }
         contentContainerStyle={styles.list}
         renderItem={({ item }) => (
           <TouchableOpacity
-            style={styles.card}
+            style={[styles.card, { backgroundColor: cardColor, shadowOpacity: isDarkMode ? 0 : 0.06 }]}
             onPress={() => navigation.navigate('PollsTab', { screen: 'Results', params: { pollId: item.poll_id } })}
             activeOpacity={0.75}
           >
             <View style={styles.cardTop}>
-              <Text style={styles.cardTitle} numberOfLines={2}>{item.poll_title}</Text>
+              <Text style={[styles.cardTitle, { color: titleColor }]} numberOfLines={2}>{item.poll_title}</Text>
               <View style={[styles.statusBadge, { backgroundColor: (statusColors[item.poll_status] || '#6c757d') + '22' }]}>
                 <Text style={[styles.statusBadgeText, { color: statusColors[item.poll_status] || '#6c757d' }]}>
                   {item.poll_status}
                 </Text>
               </View>
             </View>
-            <View style={styles.choiceRow}>
-              <Text style={styles.choiceLabel}>Your vote: </Text>
-              <Text style={styles.choiceValue}>{item.option_text}</Text>
+            <View style={[styles.choiceRow, { backgroundColor: softColor }]}>
+              <Text style={[styles.choiceLabel, { color: mutedColor }]}>Your vote: </Text>
+              <Text style={[styles.choiceValue, { color: textColor }]}>{item.option_text}</Text>
             </View>
             <View style={styles.cardFooter}>
-              <Text style={styles.cardDate}>{item.created_at?.slice(0, 16).replace('T', ' ')}</Text>
+              <Text style={[styles.cardDate, { color: mutedColor }]}>{item.created_at?.slice(0, 16).replace('T', ' ')}</Text>
               <Text style={styles.cardLink}>See results →</Text>
             </View>
           </TouchableOpacity>

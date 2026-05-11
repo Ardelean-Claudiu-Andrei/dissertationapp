@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
 const pool = require('../db');
-const { assignCohort } = require('../helpers/cohortAssigner');
+const { assignCohort, getVersionConfig } = require('../helpers/cohortAssigner');
 const { evaluateFlags } = require('../helpers/flagEvaluator');
 const requireAuth = require('../middleware/auth');
 const { randomUUID } = require('crypto');
@@ -73,7 +73,7 @@ router.post('/register', async (req, res) => {
       user = { ...existing[0], app_version: appVersion };
     } else {
       const id = randomUUID();
-      const cohort = assignCohort(deviceId);
+      const cohort = assignCohort(id);
       await pool.query(
         'INSERT INTO users (id, device_id, app_version, country, cohort, created_at, updated_at) VALUES (?, ?, ?, ?, ?, NOW(), NOW())',
         [id, deviceId, appVersion, country, cohort]
@@ -97,7 +97,15 @@ router.post('/register', async (req, res) => {
       );
     }
 
-    return res.status(200).json({ user, flags: qualifyingFlags });
+    const versionConfig = getVersionConfig(user.cohort);
+    return res.status(200).json({
+      user: {
+        ...user,
+        assigned_version: versionConfig.version,
+        version_config: { version: versionConfig.version, label: versionConfig.label, theme: versionConfig.theme, features: versionConfig.features },
+      },
+      flags: qualifyingFlags,
+    });
   } catch (err) {
     console.error('POST /api/users/register', err);
     return res.status(500).json({ error: 'Internal server error' });
@@ -110,7 +118,12 @@ router.get('/me', requireAuth, async (req, res) => {
     const [rows] = await pool.query('SELECT * FROM users WHERE id = ?', [req.userId]);
     if (rows.length === 0) return res.status(404).json({ error: 'User not found' });
     const { password_hash, ...safe } = rows[0];
-    return res.json(safe);
+    const versionConfig = getVersionConfig(safe.cohort);
+    return res.json({
+      ...safe,
+      assigned_version: versionConfig.version,
+      version_config: { version: versionConfig.version, label: versionConfig.label, theme: versionConfig.theme, features: versionConfig.features },
+    });
   } catch (err) {
     console.error('GET /api/users/me', err);
     return res.status(500).json({ error: 'Internal server error' });

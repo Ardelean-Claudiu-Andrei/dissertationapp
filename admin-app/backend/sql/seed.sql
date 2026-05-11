@@ -3,6 +3,7 @@ USE dissertationapp;
 -- Feature flags for demo (INSERT IGNORE to avoid errors if already present)
 INSERT IGNORE INTO feature_flags (id, name, description, enabled, rollout_pct, min_version, created_at, updated_at)
 VALUES
+  (UUID(), 'dark_mode_on_canary', 'Allow V3 Canary users to enable the dark-mode switch', 1, 100, '2.0.0', NOW(), NOW()),
   (UUID(), 'enhanced_results',  'Animated results screen with stats and auto-refresh', 1, 100, '1.5.0', NOW(), NOW()),
   (UUID(), 'version_gate',      'Block users below minimum version',                   0, 100, '2.0.0', NOW(), NOW()),
   (UUID(), 'show_debug_info',   'Show cohort and version badge in UI',                 1, 100, '1.0.0', NOW(), NOW()),

@@ -2,17 +2,22 @@ import React, { useState, useCallback } from 'react';
 import {
   View, Text, TextInput, StyleSheet, SafeAreaView,
   ScrollView, TouchableOpacity, Alert, ActivityIndicator,
+  Switch,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from '../api/client';
 import { useAuth } from '../context/AuthContext';
+import { useFlags } from '../context/FlagsContext';
+import { useVersion } from '../context/VersionContext';
 import { APP_VERSION } from '../api/client';
 
 const cohortColors = { cohort_a: '#4361ee', cohort_b: '#7209b7', cohort_c: '#f72585' };
 
 export default function ProfileScreen() {
   const { user: cachedUser, signOut, updateUser } = useAuth();
+  const { refreshFlags } = useFlags();
+  const { versionConfig, primaryColor, isDarkMode, setDarkModeEnabled, updateVersionConfig } = useVersion();
   const [profile, setProfile] = useState(null);
   const [voteCount, setVoteCount] = useState(0);
   const [editing, setEditing] = useState(false);
@@ -31,6 +36,8 @@ export default function ProfileScreen() {
         .then(({ data }) => {
           setProfile(data);
           updateUser(data);
+          if (data.version_config) updateVersionConfig(data.version_config);
+          refreshFlags(data.id).catch(() => {});
         })
         .catch(() => {
           if (cachedUser) setProfile(cachedUser);
@@ -123,40 +130,82 @@ export default function ProfileScreen() {
     : '?';
 
   const cohort = profile?.cohort || '—';
-  const cohortColor = cohortColors[cohort] || '#6c757d';
+  const cohortColor = cohortColors[cohort] || primaryColor;
+  const supportsDarkMode = !!versionConfig.features?.dark_mode;
+  const showDebugInfo = !!versionConfig.features?.show_debug_info;
+  const showCompletionPrompt = !!versionConfig.features?.profile_completion_prompt;
+  const hasMissingProfileInfo = !profile?.first_name || !profile?.last_name || !profile?.country;
+  const palette = getPalette(isDarkMode);
 
   if (!profile) {
-    return <View style={styles.centered}><ActivityIndicator size="large" color="#1a1a2e" /></View>;
+    return <View style={[styles.centered, { backgroundColor: palette.background }]}><ActivityIndicator size="large" color={primaryColor} /></View>;
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]}>
       <ScrollView contentContainerStyle={styles.scroll}>
-        <Text style={styles.pageTitle}>Profile</Text>
+        <Text style={[styles.pageTitle, { color: palette.title }]}>Profile</Text>
+
+        {showCompletionPrompt && hasMissingProfileInfo && (
+          <TouchableOpacity
+            style={[styles.completionPrompt, { backgroundColor: isDarkMode ? '#241d14' : '#fff8e1', borderColor: isDarkMode ? '#856404' : '#ffe08a' }]}
+            onPress={startEdit}
+            activeOpacity={0.8}
+          >
+            <Text style={[styles.completionTitle, { color: isDarkMode ? '#ffd166' : '#856404' }]}>Complete your profile</Text>
+            <Text style={[styles.completionText, { color: isDarkMode ? '#ffe8a3' : '#7a5a00' }]}>
+              Add your name and country to improve the research dataset.
+            </Text>
+          </TouchableOpacity>
+        )}
 
         {/* Avatar + name */}
         <View style={styles.avatarSection}>
           <View style={[styles.avatar, { backgroundColor: cohortColor }]}>
             <Text style={styles.avatarText}>{initials}</Text>
           </View>
-          <Text style={styles.displayName}>{displayName}</Text>
-          <Text style={styles.emailLabel}>{profile.email}</Text>
+          <Text style={[styles.displayName, { color: palette.title }]}>{displayName}</Text>
+          <Text style={[styles.emailLabel, { color: palette.muted }]}>{profile.email}</Text>
           <View style={[styles.cohortBadge, { backgroundColor: cohortColor + '22' }]}>
             <Text style={[styles.cohortBadgeText, { color: cohortColor }]}>{cohort}</Text>
           </View>
+          {showDebugInfo && (
+            <View style={[styles.versionBadge, { backgroundColor: primaryColor }]}>
+              <Text style={styles.versionBadgeText}>
+                {versionConfig.version} — {versionConfig.label}
+              </Text>
+            </View>
+          )}
         </View>
 
         {/* Stats */}
         <View style={styles.statsRow}>
-          <StatCard value={voteCount} label="Votes cast" />
-          <StatCard value={APP_VERSION} label="App version" />
-          <StatCard value={cohort} label="Cohort" />
+          <StatCard value={voteCount} label="Votes cast" palette={palette} />
+          <StatCard value={APP_VERSION} label="App version" palette={palette} />
+          {showDebugInfo && <StatCard value={cohort} label="Cohort" palette={palette} />}
         </View>
 
+        {supportsDarkMode && (
+          <View style={[styles.section, { backgroundColor: palette.card, shadowOpacity: isDarkMode ? 0 : 0.06 }]}>
+            <View style={[styles.infoRow, { borderTopWidth: 0, borderTopColor: palette.border }]}>
+              <View>
+                <Text style={[styles.infoLabel, { color: palette.text }]}>Dark mode</Text>
+                <Text style={[styles.infoNote, { color: palette.muted }]}>V3 Canary only</Text>
+              </View>
+              <Switch
+                value={isDarkMode}
+                onValueChange={setDarkModeEnabled}
+                trackColor={{ false: '#dee2e6', true: primaryColor + '88' }}
+                thumbColor={isDarkMode ? primaryColor : '#fff'}
+              />
+            </View>
+          </View>
+        )}
+
         {/* Edit profile */}
-        <View style={styles.section}>
+        <View style={[styles.section, { backgroundColor: palette.card, shadowOpacity: isDarkMode ? 0 : 0.06 }]}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Personal Info</Text>
+            <Text style={[styles.sectionTitle, { color: palette.muted }]}>Personal Info</Text>
             {!editing && (
               <TouchableOpacity onPress={startEdit}>
                 <Text style={styles.editLink}>Edit</Text>
@@ -168,9 +217,9 @@ export default function ProfileScreen() {
 
           {editing ? (
             <View style={styles.editForm}>
-              <Field label="First name" value={editForm.first_name} onChange={(v) => setEditForm((p) => ({ ...p, first_name: v }))} />
-              <Field label="Last name"  value={editForm.last_name}  onChange={(v) => setEditForm((p) => ({ ...p, last_name: v }))} />
-              <Field label="Country"    value={editForm.country}    onChange={(v) => setEditForm((p) => ({ ...p, country: v }))} placeholder="e.g. RO" maxLength={10} />
+              <Field label="First name" value={editForm.first_name} onChange={(v) => setEditForm((p) => ({ ...p, first_name: v }))} palette={palette} />
+              <Field label="Last name"  value={editForm.last_name}  onChange={(v) => setEditForm((p) => ({ ...p, last_name: v }))} palette={palette} />
+              <Field label="Country"    value={editForm.country}    onChange={(v) => setEditForm((p) => ({ ...p, country: v }))} placeholder="e.g. RO" maxLength={10} palette={palette} />
               <View style={styles.editActions}>
                 <TouchableOpacity style={styles.saveBtn} onPress={saveProfile} disabled={saving}>
                   {saving ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.saveBtnText}>Save</Text>}
@@ -182,18 +231,18 @@ export default function ProfileScreen() {
             </View>
           ) : (
             <>
-              <InfoRow label="First name"  value={profile.first_name || '—'} />
-              <InfoRow label="Last name"   value={profile.last_name  || '—'} />
-              <InfoRow label="Email"       value={profile.email      || '—'} note="(not editable)" />
-              <InfoRow label="Country"     value={profile.country    || '—'} />
+              <InfoRow label="First name"  value={profile.first_name || '—'} palette={palette} />
+              <InfoRow label="Last name"   value={profile.last_name  || '—'} palette={palette} />
+              <InfoRow label="Email"       value={profile.email      || '—'} note="(not editable)" palette={palette} />
+              <InfoRow label="Country"     value={profile.country    || '—'} palette={palette} />
             </>
           )}
         </View>
 
         {/* Change password */}
-        <View style={styles.section}>
+        <View style={[styles.section, { backgroundColor: palette.card, shadowOpacity: isDarkMode ? 0 : 0.06 }]}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Security</Text>
+            <Text style={[styles.sectionTitle, { color: palette.muted }]}>Security</Text>
             {!changingPassword && (
               <TouchableOpacity onPress={() => { setChangingPassword(true); setPwError(null); }}>
                 <Text style={styles.editLink}>Change password</Text>
@@ -204,9 +253,9 @@ export default function ProfileScreen() {
           {changingPassword ? (
             <View style={styles.editForm}>
               {pwError && <Text style={styles.inlineError}>{pwError}</Text>}
-              <Field label="Current password" value={pwForm.current_password} onChange={(v) => setPwForm((p) => ({ ...p, current_password: v }))} secure />
-              <Field label="New password"     value={pwForm.new_password}     onChange={(v) => setPwForm((p) => ({ ...p, new_password: v }))}     secure />
-              <Field label="Confirm new"      value={pwForm.confirm}          onChange={(v) => setPwForm((p) => ({ ...p, confirm: v }))}           secure />
+              <Field label="Current password" value={pwForm.current_password} onChange={(v) => setPwForm((p) => ({ ...p, current_password: v }))} secure palette={palette} />
+              <Field label="New password"     value={pwForm.new_password}     onChange={(v) => setPwForm((p) => ({ ...p, new_password: v }))}     secure palette={palette} />
+              <Field label="Confirm new"      value={pwForm.confirm}          onChange={(v) => setPwForm((p) => ({ ...p, confirm: v }))}           secure palette={palette} />
               <View style={styles.editActions}>
                 <TouchableOpacity style={styles.saveBtn} onPress={savePassword} disabled={saving}>
                   {saving ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.saveBtnText}>Update</Text>}
@@ -217,17 +266,19 @@ export default function ProfileScreen() {
               </View>
             </View>
           ) : (
-            <InfoRow label="Password" value="••••••••" />
+            <InfoRow label="Password" value="••••••••" palette={palette} />
           )}
         </View>
 
         {/* Device info (read-only) */}
-        <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { padding: 16, paddingBottom: 8 }]}>Device Info</Text>
-          <InfoRow label="User ID"     value={profile.id        ? `${profile.id.slice(0, 8)}…`        : '—'} />
-          <InfoRow label="Device ID"   value={profile.device_id ? `${profile.device_id.slice(0, 12)}…` : '—'} />
-          <InfoRow label="App version" value={APP_VERSION} />
-        </View>
+        {showDebugInfo && (
+          <View style={[styles.section, { backgroundColor: palette.card, shadowOpacity: isDarkMode ? 0 : 0.06 }]}>
+            <Text style={[styles.sectionTitle, { padding: 16, paddingBottom: 8, color: palette.muted }]}>Device Info</Text>
+            <InfoRow label="User ID"     value={profile.id        ? `${profile.id.slice(0, 8)}…`        : '—'} palette={palette} />
+            <InfoRow label="Device ID"   value={profile.device_id ? `${profile.device_id.slice(0, 12)}…` : '—'} palette={palette} />
+            <InfoRow label="App version" value={APP_VERSION} palette={palette} />
+          </View>
+        )}
 
         {/* Sign out */}
         <TouchableOpacity style={styles.logoutBtn} onPress={confirmLogout}>
@@ -238,33 +289,39 @@ export default function ProfileScreen() {
   );
 }
 
-function StatCard({ value, label }) {
+function getPalette(isDark) {
+  return isDark
+    ? { background: '#0d0d1a', card: '#18182a', title: '#f8f9fa', text: '#e9ecef', muted: '#adb5bd', border: '#2a2a40', input: '#111122' }
+    : { background: '#f5f5f5', card: '#fff', title: '#1a1a2e', text: '#343a40', muted: '#6c757d', border: '#f0f0f0', input: '#fafafa' };
+}
+
+function StatCard({ value, label, palette }) {
   return (
-    <View style={styles.statCard}>
-      <Text style={styles.statValue}>{value}</Text>
-      <Text style={styles.statLabel}>{label}</Text>
+    <View style={[styles.statCard, { backgroundColor: palette.card }]}>
+      <Text style={[styles.statValue, { color: palette.title }]}>{value}</Text>
+      <Text style={[styles.statLabel, { color: palette.muted }]}>{label}</Text>
     </View>
   );
 }
 
-function InfoRow({ label, value, note }) {
+function InfoRow({ label, value, note, palette }) {
   return (
-    <View style={styles.infoRow}>
-      <Text style={styles.infoLabel}>{label}</Text>
+    <View style={[styles.infoRow, { borderTopColor: palette.border }]}>
+      <Text style={[styles.infoLabel, { color: palette.text }]}>{label}</Text>
       <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-        <Text style={styles.infoValue}>{value}</Text>
-        {note ? <Text style={styles.infoNote}> {note}</Text> : null}
+        <Text style={[styles.infoValue, { color: palette.muted }]}>{value}</Text>
+        {note ? <Text style={[styles.infoNote, { color: palette.muted }]}> {note}</Text> : null}
       </View>
     </View>
   );
 }
 
-function Field({ label, value, onChange, placeholder, maxLength, secure }) {
+function Field({ label, value, onChange, placeholder, maxLength, secure, palette }) {
   return (
     <View style={{ marginBottom: 12 }}>
-      <Text style={styles.fieldLabel}>{label}</Text>
+      <Text style={[styles.fieldLabel, { color: palette.text }]}>{label}</Text>
       <TextInput
-        style={styles.fieldInput}
+        style={[styles.fieldInput, { backgroundColor: palette.input, borderColor: palette.border, color: palette.title }]}
         value={value}
         onChangeText={onChange}
         placeholder={placeholder || ''}
@@ -282,6 +339,9 @@ const styles = StyleSheet.create({
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   scroll: { padding: 20, paddingBottom: 100 },
   pageTitle: { fontSize: 28, fontWeight: '700', color: '#1a1a2e', marginBottom: 24 },
+  completionPrompt: { borderWidth: 1, borderRadius: 12, padding: 14, marginBottom: 18 },
+  completionTitle: { fontSize: 14, fontWeight: '800', marginBottom: 4 },
+  completionText: { fontSize: 13, lineHeight: 18 },
 
   avatarSection: { alignItems: 'center', marginBottom: 20 },
   avatar: { width: 80, height: 80, borderRadius: 40, alignItems: 'center', justifyContent: 'center', marginBottom: 10 },
@@ -290,6 +350,8 @@ const styles = StyleSheet.create({
   emailLabel: { fontSize: 13, color: '#6c757d', marginBottom: 8 },
   cohortBadge: { borderRadius: 12, paddingHorizontal: 14, paddingVertical: 5 },
   cohortBadgeText: { fontWeight: '700', fontSize: 13 },
+  versionBadge: { borderRadius: 10, paddingHorizontal: 12, paddingVertical: 4, marginTop: 6 },
+  versionBadgeText: { color: '#fff', fontWeight: '700', fontSize: 12 },
 
   statsRow: { flexDirection: 'row', gap: 10, marginBottom: 20 },
   statCard: { flex: 1, backgroundColor: '#fff', borderRadius: 14, padding: 14, alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 4, elevation: 2 },

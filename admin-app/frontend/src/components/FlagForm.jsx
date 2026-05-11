@@ -44,8 +44,15 @@ export default function FlagForm({ flag, onSaved, onCancel }) {
   const [enabled, setEnabled] = useState(true);
   const [rolloutPct, setRolloutPct] = useState(100);
   const [minVersion, setMinVersion] = useState('1.0.0');
+  const [features, setFeatures] = useState([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
+
+  useEffect(() => {
+    api.get('/admin/flags/features')
+      .then(({ data }) => setFeatures(data))
+      .catch(() => setFeatures([]));
+  }, []);
 
   useEffect(() => {
     if (flag) {
@@ -56,6 +63,15 @@ export default function FlagForm({ flag, onSaved, onCancel }) {
       setMinVersion(flag.min_version || '1.0.0');
     }
   }, [flag]);
+
+  function handleFeatureChange(featureKey) {
+    const feature = features.find((item) => item.key === featureKey);
+    setName(featureKey);
+    if (feature) {
+      setDescription(feature.description || '');
+      setMinVersion(feature.min_version || '1.0.0');
+    }
+  }
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -85,8 +101,18 @@ export default function FlagForm({ flag, onSaved, onCancel }) {
 
       {error && <p style={{ color: '#dc3545', marginBottom: '0.75rem', fontSize: '0.85rem' }}>{error}</p>}
 
-      <label style={labelStyle}>Name * (used as identifier in code)</label>
-      <input style={inputStyle} value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. new_results_screen" required />
+      <label style={labelStyle}>App feature *</label>
+      <select style={inputStyle} value={name} onChange={(e) => handleFeatureChange(e.target.value)} required>
+        <option value="">Select a feature implemented in the mobile app</option>
+        {features.map((feature) => (
+          <option key={feature.key} value={feature.key}>
+            {feature.label} ({feature.key})
+          </option>
+        ))}
+      </select>
+
+      <label style={labelStyle}>Feature key</label>
+      <input style={{ ...inputStyle, background: '#f8f9fa', color: '#6c757d' }} value={name} readOnly placeholder="selected_feature_key" />
 
       <label style={labelStyle}>Description</label>
       <input style={inputStyle} value={description} onChange={(e) => setDescription(e.target.value)} />

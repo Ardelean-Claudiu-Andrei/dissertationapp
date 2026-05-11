@@ -36,14 +36,19 @@ const primaryBtn = {
 
 export default function FlagsPage() {
   const [flags, setFlags] = useState([]);
+  const [features, setFeatures] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingFlag, setEditingFlag] = useState(null);
 
   async function loadFlags() {
     try {
-      const { data } = await api.get('/admin/flags');
-      setFlags(data);
+      const [{ data: flagData }, { data: featureData }] = await Promise.all([
+        api.get('/admin/flags'),
+        api.get('/admin/flags/features'),
+      ]);
+      setFlags(flagData);
+      setFeatures(featureData);
     } finally {
       setLoading(false);
     }
@@ -74,24 +79,41 @@ export default function FlagsPage() {
 
   const enabledCount = flags.filter((f) => f.enabled).length;
   const totalAssigned = flags.reduce((s, f) => s + (Number(f.assignment_count) || 0), 0);
+  const featureMap = features.reduce((acc, feature) => {
+    acc[feature.key] = feature;
+    return acc;
+  }, {});
 
   const columns = [
     {
-      key: 'name', label: 'Name',
-      render: (val) => <code style={{ background: '#f0f4ff', color: '#4361ee', padding: '0.2rem 0.5rem', borderRadius: 4, fontSize: '0.82rem', fontWeight: '600' }}>{val}</code>,
+      key: 'name', label: 'Feature',
+      render: (val) => {
+        const feature = featureMap[val];
+        return (
+          <div>
+            <div style={{ fontWeight: '700', color: '#1a1a2e', fontSize: '0.86rem' }}>{feature?.label || val}</div>
+            <code style={{ background: '#f0f4ff', color: '#4361ee', padding: '0.16rem 0.45rem', borderRadius: 4, fontSize: '0.76rem', fontWeight: '600' }}>{val}</code>
+          </div>
+        );
+      },
     },
     { key: 'description', label: 'Description', render: (val) => <span style={{ color: '#6c757d', fontSize: '0.875rem' }}>{val || '—'}</span> },
     {
       key: 'enabled', label: 'Status',
       render: (val, row) => (
-        <button onClick={() => toggleEnabled(row)} style={{
-          padding: '0.3rem 0.85rem', border: 'none', borderRadius: 20, cursor: 'pointer',
-          background: val ? '#d4edda' : '#f8d7da',
-          color: val ? '#28a745' : '#dc3545',
-          fontSize: '0.75rem', fontWeight: '700',
-        }}>
-          {val ? '● ON' : '○ OFF'}
-        </button>
+        <div>
+          <button onClick={() => toggleEnabled(row)} style={{
+            padding: '0.3rem 0.85rem', border: 'none', borderRadius: 20, cursor: 'pointer',
+            background: val ? '#d4edda' : '#f8d7da',
+            color: val ? '#28a745' : '#dc3545',
+            fontSize: '0.75rem', fontWeight: '700',
+          }}>
+            {val ? '● ON' : '○ OFF'}
+          </button>
+          {val && Number(row.rollout_pct) <= 0 && (
+            <div style={{ color: '#dc3545', fontSize: '0.68rem', marginTop: 4, fontWeight: '600' }}>0% rollout</div>
+          )}
+        </div>
       ),
     },
     {

@@ -2,6 +2,11 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../../db');
 const { randomUUID } = require('crypto');
+const { AVAILABLE_FEATURES, findFeature } = require('../../config/available_features');
+
+router.get('/features', (req, res) => {
+  return res.json(AVAILABLE_FEATURES);
+});
 
 /**
  * @swagger
@@ -85,9 +90,13 @@ router.get('/', async (req, res) => {
  */
 router.post('/', async (req, res) => {
   const { name, description, enabled, rollout_pct, min_version } = req.body;
+  const feature = findFeature(name);
 
   if (!name) {
     return res.status(400).json({ error: 'name is required' });
+  }
+  if (!feature) {
+    return res.status(400).json({ error: 'Select one of the app features implemented in the mobile codebase.' });
   }
 
   try {
@@ -97,11 +106,11 @@ router.post('/', async (req, res) => {
        VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())`,
       [
         id,
-        name,
-        description || null,
+        feature.key,
+        description || feature.description || null,
         enabled !== undefined ? (enabled ? 1 : 0) : 1,
         rollout_pct !== undefined ? rollout_pct : 100,
-        min_version || '1.0.0',
+        min_version || feature.min_version || '1.0.0',
       ]
     );
 
@@ -156,6 +165,11 @@ router.post('/', async (req, res) => {
  */
 router.put('/:id', async (req, res) => {
   const { name, description, enabled, rollout_pct, min_version } = req.body;
+  const feature = name ? findFeature(name) : null;
+
+  if (name && !feature) {
+    return res.status(400).json({ error: 'Select one of the app features implemented in the mobile codebase.' });
+  }
 
   try {
     const [result] = await pool.query(
@@ -168,7 +182,7 @@ router.put('/:id', async (req, res) => {
            updated_at  = NOW()
        WHERE id = ?`,
       [
-        name || null,
+        feature?.key || null,
         description || null,
         enabled !== undefined ? (enabled ? 1 : 0) : null,
         rollout_pct !== undefined ? rollout_pct : null,

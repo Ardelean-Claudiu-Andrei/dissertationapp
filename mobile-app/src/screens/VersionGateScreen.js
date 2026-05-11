@@ -1,8 +1,10 @@
 import React from 'react';
-import { View, Text, StyleSheet, SafeAreaView } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity } from 'react-native';
 import { APP_VERSION } from '../api/client';
+import { useAuth } from '../context/AuthContext';
 
 export default function VersionGateScreen({ route }) {
+  const { signOut } = useAuth();
   const minVersion = route.params?.minVersion || '?.?.?';
 
   return (
@@ -15,6 +17,9 @@ export default function VersionGateScreen({ route }) {
           Please update to version {minVersion} or later to continue.
         </Text>
         <Text style={styles.hint}>Update available on the App Store / Google Play.</Text>
+        <TouchableOpacity style={styles.signOutBtn} onPress={signOut} activeOpacity={0.8}>
+          <Text style={styles.signOutBtnText}>Back to login</Text>
+        </TouchableOpacity>
       </View>
     </SafeAreaView>
   );
@@ -27,4 +32,6 @@ const styles = StyleSheet.create({
   title: { fontSize: 22, fontWeight: '700', color: '#fff', textAlign: 'center', marginBottom: 12 },
   body: { fontSize: 15, color: '#a0aec0', textAlign: 'center', lineHeight: 24, marginBottom: 24 },
   hint: { fontSize: 13, color: '#6c757d', textAlign: 'center' },
+  signOutBtn: { marginTop: 28, backgroundColor: '#fff', borderRadius: 12, paddingHorizontal: 24, paddingVertical: 12 },
+  signOutBtnText: { color: '#1a1a2e', fontWeight: '700', fontSize: 15 },
 });
