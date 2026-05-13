@@ -1,8 +1,18 @@
 const express = require('express');
 const router = express.Router();
+const rateLimit = require('express-rate-limit');
 const pool = require('../db');
 const { getCache, setCache, invalidateCache } = require('../cache');
 const { randomUUID } = require('crypto');
+
+const voteLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res) =>
+    res.status(429).json({ error: 'Too many requests, please try again later.' }),
+});
 
 /**
  * @swagger
@@ -113,7 +123,7 @@ router.get('/:id', async (req, res) => {
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.post('/:id/vote', async (req, res) => {
+router.post('/:id/vote', voteLimiter, async (req, res) => {
   const { option_id, user_id } = req.body;
   const pollId = req.params.id;
 

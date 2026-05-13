@@ -7,9 +7,22 @@ const morgan = require('morgan');
 const swaggerJsdoc = require('swagger-jsdoc');
 const swaggerUi = require('swagger-ui-express');
 
+const rateLimit = require('express-rate-limit');
+
 const pool = require('./db');
 const parseHeaders = require('./middleware/parseHeaders');
 const eventLogger = require('./middleware/eventLogger');
+
+const rateLimitHandler = (req, res) =>
+  res.status(429).json({ error: 'Too many requests, please try again later.' });
+
+const apiLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 100,
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: rateLimitHandler,
+});
 
 const authRoutes = require('./routes/auth');
 const usersRoutes = require('./routes/users');
@@ -97,6 +110,9 @@ app.use(morgan('dev'));
 app.use(express.json());
 app.use(parseHeaders);
 app.use(eventLogger); // must be before routes so it can attach res.on('finish')
+
+// Rate limiting — /api/ only; /admin/ and /health are intentionally excluded
+app.use('/api/', apiLimiter);
 
 // Public API (consumed by mobile app)
 app.use('/api/auth', authRoutes);
