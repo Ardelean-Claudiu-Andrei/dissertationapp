@@ -10,7 +10,6 @@ import api from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { useFlags } from '../context/FlagsContext';
 import { useVersion } from '../context/VersionContext';
-import { APP_VERSION } from '../api/client';
 
 const cohortColors = { cohort_a: '#4361ee', cohort_b: '#7209b7', cohort_c: '#f72585' };
 
@@ -181,7 +180,7 @@ export default function ProfileScreen() {
         {/* Stats */}
         <View style={styles.statsRow}>
           <StatCard value={voteCount} label="Votes cast" palette={palette} />
-          <StatCard value={APP_VERSION} label="App version" palette={palette} />
+          <StatCard value={versionConfig.label} label="App version" palette={palette} />
           {showDebugInfo && <StatCard value={cohort} label="Cohort" palette={palette} />}
         </View>
 
@@ -276,7 +275,7 @@ export default function ProfileScreen() {
             <Text style={[styles.sectionTitle, { padding: 16, paddingBottom: 8, color: palette.muted }]}>Device Info</Text>
             <InfoRow label="User ID"     value={profile.id        ? `${profile.id.slice(0, 8)}…`        : '—'} palette={palette} />
             <InfoRow label="Device ID"   value={profile.device_id ? `${profile.device_id.slice(0, 12)}…` : '—'} palette={palette} />
-            <InfoRow label="App version" value={APP_VERSION} palette={palette} />
+            <InfoRow label="App version" value={versionConfig.label} palette={palette} />
           </View>
         )}
 

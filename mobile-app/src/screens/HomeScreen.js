@@ -11,7 +11,6 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from '../api/client';
-import { APP_VERSION } from '../config';
 import { useDeviceId } from '../hooks/useDeviceId';
 import { useFlags } from '../context/FlagsContext';
 import { useVersion } from '../context/VersionContext';
@@ -28,7 +27,6 @@ export default function HomeScreen({ navigation }) {
   const [votedPollIds, setVotedPollIds] = useState(new Set());
   const [tapCount, setTapCount] = useState(0);
   const [showSwitcher, setShowSwitcher] = useState(false);
-  const [currentVersion, setCurrentVersion] = useState(APP_VERSION);
   const bgColor = isDarkMode ? '#0d0d1a' : '#f5f5f5';
   const cardColor = isDarkMode ? '#18182a' : '#fff';
   const titleColor = isDarkMode ? '#f8f9fa' : '#1a1a2e';
@@ -40,12 +38,6 @@ export default function HomeScreen({ navigation }) {
   const showPollDescriptions = !!versionConfig.features?.show_poll_descriptions;
   const quickResultsButton = !!versionConfig.features?.quick_results_button;
   const showWelcomeBanner = !!versionConfig.features?.welcome_banner;
-
-  useEffect(() => {
-    AsyncStorage.getItem('app_version_override').then((v) => {
-      if (v) setCurrentVersion(v);
-    });
-  }, []);
 
   const register = useCallback(async () => {
     if (!deviceId) return;
@@ -107,8 +99,7 @@ export default function HomeScreen({ navigation }) {
     }
   }
 
-  async function handleVersionChange(newVersion) {
-    setCurrentVersion(newVersion);
+  async function handleVersionChange() {
     setLoading(true);
     register();
   }
@@ -207,11 +198,6 @@ export default function HomeScreen({ navigation }) {
         }}
         contentContainerStyle={styles.list}
       />
-      {showDebugInfo && (
-        <View style={styles.versionFooter}>
-          <Text style={styles.versionFooterText}>v{currentVersion}</Text>
-        </View>
-      )}
       <VersionSwitcher
         visible={showSwitcher}
         onClose={() => setShowSwitcher(false)}
@@ -266,6 +252,4 @@ const styles = StyleSheet.create({
   emptyIcon: { fontSize: 48, marginBottom: 12 },
   emptyText: { fontSize: 17, fontWeight: '600', color: '#343a40', marginBottom: 6 },
   emptySubtext: { fontSize: 14, color: '#6c757d' },
-  versionFooter: { position: 'absolute', bottom: 110, right: 16 },
-  versionFooterText: { fontSize: 11, color: '#dee2e6', fontWeight: '500' },
 });
