@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import client from '../api/client.js';
 
 const REFRESH_INTERVAL = 30;
+const HEALTH_INTERVAL  = 10;
 
 const cardStyle = {
   background: '#fff',
@@ -29,11 +30,23 @@ function ProgressBar({ value, max, color = '#e94560' }) {
   );
 }
 
+function formatUptime(s) {
+  if (s < 60) return `${s}s`;
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  if (h === 0) return `${m}m`;
+  return `${h}h ${m}m`;
+}
+
 export default function DashboardPage() {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [countdown, setCountdown] = useState(REFRESH_INTERVAL);
+
+  const [healthStats, setHealthStats] = useState(null);
+  const [healthLoading, setHealthLoading] = useState(true);
+  const [healthError, setHealthError] = useState(null);
 
   const fetchStats = useCallback(async () => {
     try {
@@ -48,6 +61,18 @@ export default function DashboardPage() {
     }
   }, []);
 
+  const fetchHealth = useCallback(async () => {
+    try {
+      const { data } = await client.get('/admin/scalability/stats');
+      setHealthStats(data);
+      setHealthError(null);
+    } catch {
+      setHealthError('Failed to load system health.');
+    } finally {
+      setHealthLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     fetchStats();
     const interval = setInterval(fetchStats, REFRESH_INTERVAL * 1000);
@@ -58,6 +83,12 @@ export default function DashboardPage() {
     const tick = setInterval(() => setCountdown((c) => (c > 0 ? c - 1 : 0)), 1000);
     return () => clearInterval(tick);
   }, []);
+
+  useEffect(() => {
+    fetchHealth();
+    const interval = setInterval(fetchHealth, HEALTH_INTERVAL * 1000);
+    return () => clearInterval(interval);
+  }, [fetchHealth]);
 
   if (loading) {
     return <div style={{ padding: '2rem', color: '#6c757d' }}>Loading stats…</div>;
@@ -213,6 +244,56 @@ export default function DashboardPage() {
             </table>
           )}
         </div>
+      </div>
+
+      {/* System Health & Scalability */}
+      <div style={{ marginTop: '2rem' }}>
+        <h3 style={{ fontSize: '1rem', fontWeight: '700', color: '#1a1a2e', margin: '0 0 1rem' }}>
+          System Health &amp; Scalability
+        </h3>
+        {healthLoading ? (
+          <div style={{ color: '#6c757d', fontSize: '0.875rem' }}>Loading health stats…</div>
+        ) : healthError ? (
+          <div style={{ color: '#dc3545', fontSize: '0.875rem' }}>{healthError}</div>
+        ) : healthStats && (
+          <>
+            <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', marginBottom: '0.75rem' }}>
+              <div style={cardStyle}>
+                <div style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>⏱️</div>
+                <div style={{ fontSize: '1.75rem', fontWeight: '800', color: '#1a1a2e' }}>{formatUptime(healthStats.uptime_seconds)}</div>
+                <div style={{ fontSize: '0.8rem', color: '#6c757d', marginTop: '0.25rem' }}>Uptime</div>
+              </div>
+              <div style={cardStyle}>
+                <div style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>🗄️</div>
+                <div style={{ fontSize: '1.25rem', fontWeight: '800', color: healthStats.db.connected ? '#28a745' : '#dc3545' }}>
+                  {healthStats.db.connected ? 'Connected' : 'Error'}
+                </div>
+                <div style={{ fontSize: '0.8rem', color: '#6c757d', marginTop: '0.25rem' }}>DB Status</div>
+              </div>
+              <div style={cardStyle}>
+                <div style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>⚡</div>
+                <div style={{ fontSize: '2rem', fontWeight: '800', color: '#1a1a2e' }}>{healthStats.cache.size}</div>
+                <div style={{ fontSize: '0.8rem', color: '#6c757d', marginTop: '0.25rem' }}>Cached polls</div>
+              </div>
+              <div style={cardStyle}>
+                <div style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>🕐</div>
+                <div style={{ fontSize: '2rem', fontWeight: '800', color: '#1a1a2e' }}>{healthStats.cache.ttl_ms / 1000}s</div>
+                <div style={{ fontSize: '0.8rem', color: '#6c757d', marginTop: '0.25rem' }}>Cache TTL</div>
+              </div>
+              <div style={cardStyle}>
+                <div style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>🗳️</div>
+                <div style={{ fontSize: '2rem', fontWeight: '800', color: '#1a1a2e' }}>{healthStats.votes_total}</div>
+                <div style={{ fontSize: '0.8rem', color: '#6c757d', marginTop: '0.25rem' }}>Total votes</div>
+              </div>
+              <div style={cardStyle}>
+                <div style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>👥</div>
+                <div style={{ fontSize: '2rem', fontWeight: '800', color: '#1a1a2e' }}>{healthStats.users_total}</div>
+                <div style={{ fontSize: '0.8rem', color: '#6c757d', marginTop: '0.25rem' }}>Total users</div>
+              </div>
+            </div>
+            <div style={{ fontSize: '0.75rem', color: '#adb5bd' }}>auto-refreshes every 10s</div>
+          </>
+        )}
       </div>
     </div>
   );
