@@ -1,4 +1,5 @@
 require('dotenv').config();
+const os = require('os');
 const express = require('express');
 const helmet = require('helmet');
 const cors = require('cors');
@@ -6,6 +7,7 @@ const morgan = require('morgan');
 const swaggerJsdoc = require('swagger-jsdoc');
 const swaggerUi = require('swagger-ui-express');
 
+const pool = require('./db');
 const parseHeaders = require('./middleware/parseHeaders');
 const eventLogger = require('./middleware/eventLogger');
 
@@ -19,6 +21,7 @@ const adminEventsRoutes = require('./routes/admin/events');
 const adminUsersRoutes = require('./routes/admin/users');
 const adminStatsRoutes = require('./routes/admin/stats');
 const adminVersionsRoutes = require('./routes/admin/versions');
+const adminScalabilityRoutes = require('./routes/admin/scalability');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -108,8 +111,41 @@ app.use('/admin/events', adminEventsRoutes);
 app.use('/admin/users', adminUsersRoutes);
 app.use('/admin/stats', adminStatsRoutes);
 app.use('/admin/versions', adminVersionsRoutes);
+app.use('/admin/scalability', adminScalabilityRoutes);
 
-app.get('/health', (req, res) => res.json({ status: 'ok' }));
+/**
+ * @swagger
+ * /health:
+ *   get:
+ *     summary: Health check — returns instance identity and DB connectivity
+ *     tags: [System]
+ *     responses:
+ *       200:
+ *         description: Service is up
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:          { type: string, example: ok }
+ *                 uptime_seconds:  { type: number, example: 42.3 }
+ *                 timestamp:       { type: string, format: date-time }
+ *                 db:              { type: string, enum: [connected, error] }
+ */
+app.get('/health', async (req, res) => {
+  let db = 'error';
+  try {
+    await pool.query('SELECT 1');
+    db = 'connected';
+  } catch (_) {}
+
+  res.json({
+    status: 'ok',
+    uptime_seconds: Math.round(process.uptime() * 10) / 10,
+    timestamp: new Date().toISOString(),
+    db,
+  });
+});
 
 app.listen(PORT, () => {
   console.log(`Backend running on http://localhost:${PORT}`);

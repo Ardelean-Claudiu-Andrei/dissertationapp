@@ -25,4 +25,12 @@ function invalidateCache(pollId) {
   voteCache.delete(pollId);
 }
 
-module.exports = { getCache, setCache, invalidateCache };
+function getCacheStats() {
+  return {
+    size: voteCache.size,
+    keys: [...voteCache.keys()],
+    ttl_ms: CACHE_TTL_MS,
+  };
+}
+
+module.exports = { getCache, setCache, invalidateCache, getCacheStats };
