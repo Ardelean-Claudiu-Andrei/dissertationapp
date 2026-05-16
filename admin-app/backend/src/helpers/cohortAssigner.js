@@ -4,12 +4,12 @@ const APP_VERSIONS = require('../config/app_versions');
 // Deterministically assigns a cohort based on the userId (UUID).
 // Same userId always produces the same cohort — guarantees the same user
 // always gets the same version regardless of device or session.
-// The SHA-256 hash distributes evenly, giving roughly 33% per cohort.
+// SHA-256(userId) % 3 gives exactly 1/3 per cohort with no boundary gaps.
 function assignCohort(userId) {
   const hash = createHash('sha256').update(userId).digest('hex');
-  const bucket = parseInt(hash.slice(0, 8), 16) % 100; // 0–99
-  if (bucket < 33) return 'cohort_a';
-  if (bucket < 66) return 'cohort_b';
+  const bucket = parseInt(hash.slice(0, 8), 16) % 3;
+  if (bucket === 0) return 'cohort_a';
+  if (bucket === 1) return 'cohort_b';
   return 'cohort_c';
 }
 

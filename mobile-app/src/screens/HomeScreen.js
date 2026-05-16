@@ -38,6 +38,7 @@ export default function HomeScreen({ navigation }) {
   const showPollDescriptions = !!versionConfig.features?.show_poll_descriptions;
   const quickResultsButton = !!versionConfig.features?.quick_results_button;
   const showWelcomeBanner = !!versionConfig.features?.welcome_banner;
+  const isBeta = versionConfig.label === 'Beta';
 
   const register = useCallback(async () => {
     if (!deviceId) return;
@@ -123,7 +124,8 @@ export default function HomeScreen({ navigation }) {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: bgColor }]}>
       <FlatList
-        data={polls}
+        data={isBeta ? [...polls].reverse() : polls}
+        inverted={isBeta}
         keyExtractor={(item) => item.id}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={primaryColor} />}
         ListHeaderComponent={

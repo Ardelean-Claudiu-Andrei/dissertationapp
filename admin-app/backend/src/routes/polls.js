@@ -4,6 +4,7 @@ const rateLimit = require('express-rate-limit');
 const pool = require('../db');
 const { getCache, setCache, invalidateCache } = require('../cache');
 const { randomUUID } = require('crypto');
+const requireAuth = require('../middleware/auth');
 
 const voteLimiter = rateLimit({
   windowMs: 60 * 1000,
@@ -123,12 +124,13 @@ router.get('/:id', async (req, res) => {
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.post('/:id/vote', voteLimiter, async (req, res) => {
-  const { option_id, user_id } = req.body;
+router.post('/:id/vote', voteLimiter, requireAuth, async (req, res) => {
+  const { option_id } = req.body;
+  const user_id = req.userId;
   const pollId = req.params.id;
 
-  if (!option_id || !user_id) {
-    return res.status(400).json({ error: 'option_id and user_id are required' });
+  if (!option_id) {
+    return res.status(400).json({ error: 'option_id is required' });
   }
 
   const [existing] = await pool.query(
