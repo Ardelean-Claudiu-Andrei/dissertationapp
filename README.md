@@ -1,51 +1,96 @@
-# Dissertation App — Scalare și distribuție versiuni în aplicații mobile
+# Dissertation App
+
+Experimental polling application for analyzing scaling mechanisms and version distribution in distributed mobile applications. Built as part of an MSc dissertation at UBB.
 
 ## Architecture
-```
-Mobile App (React Native) → Backend API (Node.js/Express) → MySQL
-Admin Panel (React) → Backend API
+
+Three components work together:
+
+- **Mobile App** (React Native) — cross-platform client for Android/iOS; submits votes and receives feature-flag-gated experiences
+- **REST API Backend** (Node.js + Express, port 3001) — handles votes, feature flags, version gating, rate limiting, and async event logging; documented via Swagger/OpenAPI
+- **Admin Web Panel** (React + Vite, port 5173) — manages polls, feature flags, and monitors app version distribution
+
+Data layer: MySQL. Orchestration: Docker Compose.
+
+## Prerequisites
+
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/)
+- Node.js 20+ (for local dev or mobile)
+- Android Studio (for mobile development)
+
+## Running with Docker (recommended)
+
+```bash
+docker-compose up --build
 ```
 
-## Quick Start
+| Service   | URL                              |
+|-----------|----------------------------------|
+| Admin UI  | http://localhost:5173            |
+| API docs  | http://localhost:3001/api-docs   |
 
-### Backend
+**Import existing data:**
+```bash
+mysqldump -u root -p dissertationdb > backup.sql
+docker exec -i dissertationapp-db-1 mysql -u root -ppassword dissertationdb < backup.sql
+```
+
+**Or seed demo data:**
+```bash
+docker exec dissertationapp-backend-1 npm run seed
+```
+
+## Running Locally (without Docker)
+
+**Backend:**
 ```bash
 cd admin-app/backend
 npm install
-cp .env.example .env   # configurează DB_HOST, DB_USER, DB_PASS, JWT_SECRET
-mysql -u root -p < sql/schema.sql
-mysql -u root -p dissertationapp < sql/seed.sql
 npm run dev
 ```
 
-### Admin Panel
+**Frontend:**
 ```bash
-cd admin-app/frontend && npm install && npm run dev
+cd admin-app/frontend
+npm install
+npm run dev
 ```
 
-### Mobile App
+**Mobile:**
 ```bash
-cd mobile-app && npm install
-# Editează DEV_HOST în src/api/client.js cu IP-ul tău local
-npx react-native run-android   # sau run-ios
+cd mobile-app
+npx react-native run-android
 ```
 
-## Version Simulation (Demo)
-Tap de 5 ori pe titlul "Active Polls" → modal de selectare versiune
-- **v1.0.0** → UI de bază, results simplu
-- **v1.5.0** → Results enhanced cu animații (flag: `enhanced_results`)
-- **v2.0.0** → Version Gate activ (dacă flagul `version_gate` e enabled în admin)
+> Make sure MySQL is running locally and the backend `.env` is configured accordingly.
 
-## Feature Flags
-| Flag | min_version | rollout_pct | Efect în UI |
-|------|-------------|-------------|-------------|
-| `enhanced_results` | 1.5.0 | 100% | Results animat cu statistici și auto-refresh |
-| `show_debug_info` | 1.0.0 | 100% | Badge cu cohort și versiune în ProfileScreen |
-| `version_gate` | 2.0.0 | 100% | Blochează versiunile < 2.0.0 |
-| `maintenance_mode` | 1.0.0 | 0% | Banner galben în HomeScreen |
+## Key Features
 
-## Load Testing
-```bash
-ab -n 1000 -c 50 http://localhost:3001/api/polls
-ab -n 500 -c 20 http://localhost:3001/api/polls/{poll_id}/results
+- **Feature flags** — SHA-256 deterministic rollout evaluation; users get consistent experiences across sessions
+- **Version gating** — restrict features by app version
+- **In-memory caching** — TTL-based cache with invalidation on mutations
+- **Rate limiting** — vote endpoint protected against abuse
+- **Async event logging** — vote and flag evaluation events logged without blocking the request path
+- **Swagger/OpenAPI** — full API documentation at `/api-docs`
+
+## Tech Stack
+
+| Layer    | Technology                  |
+|----------|-----------------------------|
+| Mobile   | React Native                |
+| Backend  | Node.js, Express            |
+| Database | MySQL                       |
+| Frontend | React, Vite                 |
+| Infra    | Docker, Docker Compose      |
+| Docs     | Swagger / OpenAPI           |
+
+## Project Structure
+
+```
+dissertationapp/
+├── admin-app/
+│   ├── backend/     # Express REST API
+│   └── frontend/    # React + Vite admin panel
+├── mobile-app/      # React Native app
+└── docker-compose.yml
 ```
