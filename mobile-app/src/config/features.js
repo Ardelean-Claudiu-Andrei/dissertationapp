@@ -10,6 +10,7 @@ const APP_FEATURES = {
   QUICK_RESULTS_BUTTON: 'quick_results_button',
   WELCOME_BANNER: 'welcome_banner',
   PROFILE_COMPLETION_PROMPT: 'profile_completion_prompt',
+  VERTICAL_NAVBAR: 'vertical_navbar',
 };
 
 export default APP_FEATURES;

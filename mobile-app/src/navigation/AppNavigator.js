@@ -39,12 +39,71 @@ function PollsStack() {
 
 function CustomTabBar({ state, descriptors, navigation }) {
   const { versionConfig, primaryColor, isDarkMode } = useVersion();
+  const { hasFlag } = useFlags();
   const isLeftHanded = !!versionConfig.features?.left_handed_usage;
+  const isVerticalNav = hasFlag('vertical_navbar');
   const tabs = [
     { name: 'PollsTab', icon: '🗳️', label: 'Polls' },
     { name: 'ActivityTab', icon: '📊', label: 'Activity' },
     { name: 'ProfileTab', icon: '👤', label: 'Profile' },
   ];
+
+  const barBg = isDarkMode ? 'rgba(24, 24, 42, 0.96)' : 'rgba(255, 255, 255, 0.92)';
+  const barBorder = isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.9)';
+
+  const renderTabItems = (itemStyle) =>
+    state.routes.map((route, index) => {
+      const tab = tabs[index];
+      const isFocused = state.index === index;
+      const { options } = descriptors[route.key];
+
+      const onPress = () => {
+        const event = navigation.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
+        if (!isFocused && !event.defaultPrevented) {
+          navigation.navigate(route.name);
+        }
+      };
+
+      return (
+        <TouchableOpacity
+          key={route.key}
+          accessibilityRole="button"
+          accessibilityState={isFocused ? { selected: true } : {}}
+          accessibilityLabel={options.tabBarAccessibilityLabel}
+          onPress={onPress}
+          style={itemStyle}
+          activeOpacity={0.7}
+        >
+          <View style={[
+            isVerticalNav ? styles.tabIconWrapVertical : styles.tabIconWrap,
+            isFocused && { backgroundColor: primaryColor + '22' },
+          ]}>
+            <Text style={styles.tabIcon}>{tab.icon}</Text>
+          </View>
+          <Text style={[
+            styles.tabLabel,
+            isVerticalNav && { fontSize: 10 },
+            { color: '#adb5bd' },
+            isFocused && { color: isDarkMode ? '#f8f9fa' : primaryColor, fontWeight: '700' },
+          ]}>
+            {tab.label}
+          </Text>
+          {isVerticalNav && isFocused && (
+            <View style={[styles.tabActiveDot, { backgroundColor: primaryColor }]} />
+          )}
+        </TouchableOpacity>
+      );
+    });
+
+  if (isVerticalNav) {
+    return (
+      <View style={styles.tabBarVerticalOuter}>
+        <View style={[styles.tabBarVerticalInner, { backgroundColor: barBg, borderColor: barBorder }]}>
+          {renderTabItems(styles.tabItemVertical)}
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.tabBarOuter}>
@@ -52,45 +111,11 @@ function CustomTabBar({ state, descriptors, navigation }) {
         styles.tabBarInner,
         {
           flexDirection: isLeftHanded ? 'row-reverse' : 'row',
-          backgroundColor: isDarkMode ? 'rgba(24, 24, 42, 0.96)' : 'rgba(255, 255, 255, 0.92)',
-          borderColor: isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.9)',
+          backgroundColor: barBg,
+          borderColor: barBorder,
         },
       ]}>
-        {state.routes.map((route, index) => {
-          const tab = tabs[index];
-          const isFocused = state.index === index;
-          const { options } = descriptors[route.key];
-
-          const onPress = () => {
-            const event = navigation.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
-            if (!isFocused && !event.defaultPrevented) {
-              navigation.navigate(route.name);
-            }
-          };
-
-          return (
-            <TouchableOpacity
-              key={route.key}
-              accessibilityRole="button"
-              accessibilityState={isFocused ? { selected: true } : {}}
-              accessibilityLabel={options.tabBarAccessibilityLabel}
-              onPress={onPress}
-              style={styles.tabItem}
-              activeOpacity={0.7}
-            >
-              <View style={[styles.tabIconWrap, isFocused && { backgroundColor: primaryColor + '22' }]}>
-                <Text style={styles.tabIcon}>{tab.icon}</Text>
-              </View>
-              <Text style={[
-                styles.tabLabel,
-                { color: isDarkMode ? '#adb5bd' : '#adb5bd' },
-                isFocused && { color: isDarkMode ? '#f8f9fa' : primaryColor, fontWeight: '700' },
-              ]}>
-                {tab.label}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
+        {renderTabItems(styles.tabItem)}
       </View>
     </View>
   );
@@ -204,4 +229,44 @@ const styles = StyleSheet.create({
   },
   tabIcon: { fontSize: 20 },
   tabLabel: { fontSize: 11, color: '#adb5bd', fontWeight: '500' },
+  tabBarVerticalOuter: {
+    position: 'absolute',
+    right: 16,
+    bottom: Platform.OS === 'ios' ? 40 : 20,
+  },
+  tabBarVerticalInner: {
+    flexDirection: 'column',
+    borderRadius: 24,
+    paddingVertical: 8,
+    paddingHorizontal: 6,
+    alignItems: 'center',
+    width: 64,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.12,
+    shadowRadius: 24,
+    elevation: 16,
+    borderWidth: 1,
+  },
+  tabItemVertical: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 4,
+    width: '100%',
+  },
+  tabIconWrapVertical: {
+    width: 40,
+    height: 36,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 2,
+  },
+  tabActiveDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    marginTop: 4,
+  },
 });

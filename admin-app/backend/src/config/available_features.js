@@ -65,6 +65,12 @@ const AVAILABLE_FEATURES = [
     description: 'Prompt users to complete missing profile fields.',
     min_version: '1.0.0',
   },
+  {
+    key: 'vertical_navbar',
+    label: 'Vertical Navbar (vertical_navbar)',
+    description: 'Replace the bottom pill tab bar with a vertical tab bar anchored to the bottom-right corner.',
+    min_version: '1.0.0',
+  },
 ];
 
 function normalizeFeatureKey(name) {
