@@ -1,5 +1,5 @@
 const APP_VERSIONS = {
-  V1: {
+  '1.0.0': {
     label: 'Stable',
     theme: 'blue',
     features: {
@@ -8,7 +8,7 @@ const APP_VERSIONS = {
       show_vote_count: true,
     },
   },
-  V2: {
+  '2.0.0': {
     label: 'Beta',
     theme: 'green',
     features: {
@@ -17,7 +17,7 @@ const APP_VERSIONS = {
       show_vote_count: true,
     },
   },
-  V3: {
+  '3.0.0': {
     label: 'Canary',
     theme: 'purple',
     features: {

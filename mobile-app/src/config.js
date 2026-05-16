@@ -8,4 +8,4 @@ export const DEV_API_HOST = 'localhost';
 export const APP_VERSION = '1.0.0';
 
 // Dev-only: version options for the hidden version switcher (tap title 5x)
-export const AVAILABLE_VERSIONS = ['1.0.0', '1.5.0', '2.0.0'];
+export const AVAILABLE_VERSIONS = ['1.0.0', '2.0.0', '3.0.0'];

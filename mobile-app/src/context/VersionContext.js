@@ -4,7 +4,7 @@ import { useFlags } from './FlagsContext';
 import APP_FEATURES from '../config/features';
 
 const DEFAULT_CONFIG = {
-  version: 'V1',
+  version: '1.0.0',
   label: 'Stable',
   theme: 'blue',
   features: {
@@ -21,9 +21,9 @@ const THEME_COLORS = {
 };
 
 const VERSION_BY_LABEL = {
-  Stable: 'V1',
-  Beta: 'V2',
-  Canary: 'V3',
+  Stable: '1.0.0',
+  Beta: '2.0.0',
+  Canary: '3.0.0',
 };
 
 const VersionContext = createContext({

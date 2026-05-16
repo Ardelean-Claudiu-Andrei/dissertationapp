@@ -35,6 +35,11 @@ function evaluateFlags(flags, user) {
   return flags
     .filter((flag) => {
       if (!flag.enabled) return false;
+      // version_gate is inverted: active when user is BELOW min_version.
+      // Setting min_version=2.0.0 blocks 1.0.0 users, not 2.0.0/3.0.0.
+      if (flag.name === 'version_gate') {
+        return !semverGte(user.app_version, flag.min_version);
+      }
       if (!semverGte(user.app_version, flag.min_version)) return false;
       if (!userQualifiesForRollout(user.id, flag.id, flag.rollout_pct)) return false;
       return true;

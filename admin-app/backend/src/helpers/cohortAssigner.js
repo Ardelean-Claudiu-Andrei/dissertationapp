@@ -14,8 +14,8 @@ function assignCohort(userId) {
 }
 
 function getVersionForCohort(cohort) {
-  const map = { cohort_a: 'V1', cohort_b: 'V2', cohort_c: 'V3' };
-  return map[cohort] || 'V1';
+  const map = { cohort_a: '1.0.0', cohort_b: '2.0.0', cohort_c: '3.0.0' };
+  return map[cohort] || '1.0.0';
 }
 
 function getVersionConfig(cohort) {

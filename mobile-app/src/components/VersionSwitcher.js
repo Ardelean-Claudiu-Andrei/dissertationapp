@@ -34,9 +34,9 @@ export default function VersionSwitcher({ visible, onClose, onVersionChange }) {
             >
               <Text style={[styles.versionText, selected === v && styles.versionTextActive]}>
                 {selected === v ? '● ' : '○ '}v{v}
-                {v === '1.0.0' && '  — Basic UI'}
-                {v === '1.5.0' && '  — Enhanced Results'}
-                {v === '2.0.0' && '  — Canary + dark mode'}
+                {v === '1.0.0' && '  — Stable'}
+                {v === '2.0.0' && '  — Beta (vertical nav)'}
+                {v === '3.0.0' && '  — Canary (dark mode)'}
               </Text>
             </TouchableOpacity>
           ))}
