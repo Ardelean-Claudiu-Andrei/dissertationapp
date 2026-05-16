@@ -4,6 +4,31 @@ const pool = require('../../db');
 const { randomUUID } = require('crypto');
 const { AVAILABLE_FEATURES, findFeature } = require('../../config/available_features');
 
+/**
+ * @swagger
+ * /admin/flags/features:
+ *   get:
+ *     summary: List all known feature keys defined in the mobile codebase
+ *     tags: [Admin - Flags]
+ *     responses:
+ *       200:
+ *         description: Array of available feature definitions
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   key:
+ *                     type: string
+ *                   label:
+ *                     type: string
+ *                   description:
+ *                     type: string
+ *                   min_version:
+ *                     type: string
+ */
 router.get('/features', (req, res) => {
   return res.json(AVAILABLE_FEATURES);
 });

@@ -14,9 +14,43 @@ Data layer: MySQL. Orchestration: Docker Compose.
 
 ## Prerequisites
 
-- [Docker Desktop](https://www.docker.com/products/docker-desktop/)
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/) (for Docker setup)
 - Node.js 20+ (for local dev or mobile)
 - Android Studio (for mobile development)
+
+## Manual MySQL Setup
+
+Use this if you want to run the backend without Docker.
+
+**1. Start MySQL locally.**
+
+**2. Create the database and tables:**
+```bash
+mysql -u root -p < backend/sql/schema.sql
+```
+
+**3. Populate demo data:**
+```bash
+cd backend && npm install && npm run seed
+```
+
+**4. Configure the environment file:**
+```bash
+cp backend/.env.example backend/.env
+```
+
+Edit `backend/.env` with your local credentials:
+
+```
+PORT=3001
+DB_HOST=localhost
+DB_PORT=3306
+DB_NAME=dissertationapp
+DB_USER=root
+DB_PASSWORD=your_password_here
+JWT_SECRET=change_this_in_production
+JWT_EXPIRES_IN=30d
+```
 
 ## Running with Docker (recommended)
 
@@ -31,8 +65,8 @@ docker-compose up --build
 
 **Import existing data:**
 ```bash
-mysqldump -u root -p dissertationdb > backup.sql
-docker exec -i dissertationapp-db-1 mysql -u root -ppassword dissertationdb < backup.sql
+mysqldump -u root -p dissertationapp > backup.sql
+docker exec -i dissertationapp-db-1 mysql -u root -ppassword dissertationapp < backup.sql
 ```
 
 **Or seed demo data:**
@@ -44,14 +78,14 @@ docker exec dissertationapp-backend-1 npm run seed
 
 **Backend:**
 ```bash
-cd admin-app/backend
+cd backend
 npm install
 npm run dev
 ```
 
 **Frontend:**
 ```bash
-cd admin-app/frontend
+cd frontend
 npm install
 npm run dev
 ```
@@ -62,7 +96,9 @@ cd mobile-app
 npx react-native run-android
 ```
 
-> Make sure MySQL is running locally and the backend `.env` is configured accordingly.
+Edit `mobile-app/src/config.js` and set `DEV_API_HOST` to your machine's LAN IP address. Run `ipconfig getifaddr en0` on Mac to find it.
+
+> Make sure MySQL is running locally and `backend/.env` is configured before starting the backend.
 
 ## Key Features
 
@@ -83,6 +119,23 @@ npx react-native run-android
 | Frontend | React, Vite                 |
 | Infra    | Docker, Docker Compose      |
 | Docs     | Swagger / OpenAPI           |
+
+## Load Testing
+
+Install k6:
+```bash
+brew install k6   # macOS
+```
+
+Make sure the backend is running, then:
+```bash
+k6 run load-test/k6-script.js
+```
+
+Key output metrics:
+- **cache_hits / cache_misses** — ratio shows how effectively the in-memory TTL cache is serving repeated results requests
+- **http_req_duration p(95)** — 95th-percentile latency; the script asserts this stays under the configured threshold
+- **http_req_failed** — should be 0% under normal load; spikes indicate rate-limiting or backend errors
 
 ## Project Structure
 

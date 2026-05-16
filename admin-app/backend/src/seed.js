@@ -18,9 +18,20 @@ const POLLS = [
 ];
 
 const FLAGS = [
-  { name: 'dark_mode',          description: 'Dark mode UI',                            enabled: 1, rollout_pct: 50,  min_version: '1.0.0' },
-  { name: 'new_results_chart',  description: 'New chart visualization for results',      enabled: 1, rollout_pct: 75,  min_version: '1.0.0' },
-  { name: 'version_gate',       description: 'Force update screen for old versions',     enabled: 0, rollout_pct: 100, min_version: '2.0.0' },
+  { name: 'show_debug_info',           description: 'Show cohort, version badge, user ID, device ID',          enabled: 1, rollout_pct: 100, min_version: '1.0.0' },
+  { name: 'dark_mode_on_canary',       description: 'Allow V3 Canary users to enable the dark-mode switch',    enabled: 1, rollout_pct: 100, min_version: '2.0.0' },
+  { name: 'enhanced_results',          description: 'Animated results screen with stats and auto-refresh',     enabled: 1, rollout_pct: 100, min_version: '1.5.0' },
+  { name: 'new_results_chart',         description: 'New chart visualization for results (legacy key)',         enabled: 1, rollout_pct: 64,  min_version: '1.0.0' },
+  { name: 'version_gate',              description: 'Force update screen for old versions',                    enabled: 0, rollout_pct: 100, min_version: '2.0.0' },
+  { name: 'maintenance_mode',          description: 'Show a maintenance banner on the Home screen',            enabled: 0, rollout_pct: 100, min_version: '1.0.0' },
+  { name: 'compact_poll_cards',        description: 'Use a denser poll list layout with smaller cards',        enabled: 1, rollout_pct: 50,  min_version: '1.0.0' },
+  { name: 'show_poll_descriptions',    description: 'Show poll descriptions in the poll list',                 enabled: 1, rollout_pct: 100, min_version: '1.0.0' },
+  { name: 'left_handed_usage',         description: 'Reverse the bottom navigation order for left-handed use', enabled: 1, rollout_pct: 50,  min_version: '1.5.0' },
+  { name: 'quick_results_button',      description: 'Let users jump straight to results from voted polls',     enabled: 1, rollout_pct: 75,  min_version: '1.5.0' },
+  { name: 'welcome_banner',            description: 'Show a research/demo welcome banner on the Home screen',  enabled: 1, rollout_pct: 100, min_version: '1.0.0' },
+  { name: 'profile_completion_prompt', description: 'Prompt users to complete missing profile fields',         enabled: 1, rollout_pct: 50,  min_version: '1.0.0' },
+  { name: 'vertical_navbar',           description: 'Replace bottom tab bar with vertical tab bar',            enabled: 1, rollout_pct: 64,  min_version: '1.0.0' },
+  { name: 'dark_mode',                 description: 'Dark mode UI (legacy key)',                               enabled: 1, rollout_pct: 50,  min_version: '1.0.0' },
 ];
 
 async function seedPolls(conn) {
