@@ -1,36 +1,15 @@
 services:
-  mysql:
-    image: mysql:8.0
-    environment:
-      MYSQL_ROOT_PASSWORD: rootpassword
-      MYSQL_DATABASE: dissertation
-      MYSQL_USER: appuser
-      MYSQL_PASSWORD: apppassword
-    volumes:
-      - mysql_data:/var/lib/mysql
-      - ./admin-app/backend/sql/schema.sql:/docker-entrypoint-initdb.d/schema.sql
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-prootpassword"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    ports:
-      - "3307:3306"
-
   backend:
     build: ./admin-app/backend
     ports:
       - "3001:3001"
-    depends_on:
-      mysql:
-        condition: service_healthy
     environment:
       PORT: 3001
-      DB_HOST: mysql
+      DB_HOST: host.docker.internal
       DB_PORT: 3306
-      DB_NAME: dissertation
-      DB_USER: appuser
-      DB_PASSWORD: apppassword
+      DB_NAME: dissertationapp
+      DB_USER: root
+      DB_PASSWORD: xxxxxx
       JWT_SECRET: dissertation_jwt_secret_change_in_production
       JWT_EXPIRES_IN: 30d
 
@@ -42,6 +21,3 @@ services:
       - backend
     environment:
       VITE_BACKEND_URL: http://backend:3001
-
-volumes:
-  mysql_data:
