@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 
 export default function VersionGateScreen({ route }) {
   const { signOut } = useAuth();
+  const currentVersion = route.params?.currentVersion || APP_VERSION;
   const minVersion = route.params?.minVersion || '?.?.?';
 
   return (
@@ -13,7 +14,7 @@ export default function VersionGateScreen({ route }) {
         <Text style={styles.icon}>⚠️</Text>
         <Text style={styles.title}>App Update Required</Text>
         <Text style={styles.body}>
-          Your app version ({APP_VERSION}) is no longer supported.{'\n'}
+          Your app version ({currentVersion}) is no longer supported.{'\n'}
           Please update to version {minVersion} or later to continue.
         </Text>
         <Text style={styles.hint}>Update available on the App Store / Google Play.</Text>

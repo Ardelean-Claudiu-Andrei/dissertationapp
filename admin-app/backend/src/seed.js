@@ -1,6 +1,17 @@
 require('dotenv').config();
 const { randomUUID } = require('crypto');
+const bcrypt = require('bcryptjs');
 const pool = require('./db');
+
+// Demo accounts — one per cohort so all three experiment variants are reachable.
+// Passwords are intentionally weak (demo only). app_version = '1.0.0' matches
+// the mobile APP_VERSION constant; the runtime will overwrite this on each login
+// anyway, so the value here only matters for a freshly-seeded DB.
+const DEMO_USERS = [
+  { email: 'account1@email.com', password: 'Test12345', first_name: 'Account1', last_name: 'Account1', cohort: 'cohort_b', app_version: '1.0.0', country: 'RO' },
+  { email: 'account2@email.com', password: 'Test12345', first_name: 'Account2', last_name: 'Account2', cohort: 'cohort_a', app_version: '1.0.0', country: 'RO' },
+  { email: 'account3@email.com', password: 'Test12345', first_name: 'Account3', last_name: 'Account3', cohort: 'cohort_c', app_version: '1.0.0', country: 'RO' },
+];
 
 const POLLS = [
   {
@@ -92,16 +103,41 @@ async function seedFlags(conn) {
   return { flagsInserted };
 }
 
+async function seedDemoUsers(conn) {
+  let usersInserted = 0;
+
+  for (const u of DEMO_USERS) {
+    const [existing] = await conn.query('SELECT id FROM users WHERE email = ?', [u.email]);
+    if (existing.length > 0) continue;
+
+    const passwordHash = await bcrypt.hash(u.password, 10);
+    const id = randomUUID();
+    await conn.query(
+      `INSERT INTO users
+         (id, device_id, email, password_hash, first_name, last_name,
+          app_version, country, cohort, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
+      [id, `demo_${u.email}`, u.email, passwordHash,
+       u.first_name, u.last_name, u.app_version, u.country, u.cohort]
+    );
+    usersInserted++;
+  }
+
+  return { usersInserted };
+}
+
 async function main() {
   const conn = await pool.getConnection();
   try {
     const { pollsInserted, optionsInserted } = await seedPolls(conn);
     const { flagsInserted } = await seedFlags(conn);
+    const { usersInserted } = await seedDemoUsers(conn);
 
     console.log('\n── Seed complete ──────────────────────────');
     console.log(`  Polls inserted   : ${pollsInserted} / ${POLLS.length}`);
     console.log(`  Options inserted : ${optionsInserted}`);
     console.log(`  Flags inserted   : ${flagsInserted} / ${FLAGS.length}`);
+    console.log(`  Demo users       : ${usersInserted} / ${DEMO_USERS.length} inserted (existing skipped)`);
     console.log('───────────────────────────────────────────\n');
   } finally {
     conn.release();

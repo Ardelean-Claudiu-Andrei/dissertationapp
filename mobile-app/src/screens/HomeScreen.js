@@ -10,14 +10,16 @@ import {
   RefreshControl,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import api from '../api/client';
+import api, { APP_VERSION } from '../api/client';
 import { useDeviceId } from '../hooks/useDeviceId';
+import { useAuth } from '../context/AuthContext';
 import { useFlags } from '../context/FlagsContext';
 import { useVersion } from '../context/VersionContext';
 import VersionSwitcher from '../components/VersionSwitcher';
 
 export default function HomeScreen({ navigation }) {
   const deviceId = useDeviceId();
+  const { token } = useAuth();
   const { updateFlags, refreshFlags } = useFlags();
   const { versionConfig, primaryColor, isDarkMode } = useVersion();
   const [polls, setPolls] = useState([]);
@@ -43,16 +45,31 @@ export default function HomeScreen({ navigation }) {
   const register = useCallback(async () => {
     if (!deviceId) return;
     try {
-      const { data } = await api.post('/api/users/register', { device_id: deviceId });
+      let data;
+      if (token) {
+        // Authenticated: load user and evaluate flags from DB app_version — no mutations.
+        const resp = await api.get('/api/users/me/flags');
+        data = resp.data;
+      } else {
+        // Anonymous first-launch: register device and get flags.
+        const resp = await api.post('/api/users/register', { device_id: deviceId });
+        data = resp.data;
+      }
 
       await AsyncStorage.setItem('user_id', data.user.id);
       if (data.user.cohort) await AsyncStorage.setItem('user_cohort', data.user.cohort);
 
       updateFlags(data.flags);
 
-      const hasVersionGate = data.flags?.some((f) => f.name === 'version_gate');
-      if (hasVersionGate) {
-        navigation.getParent()?.getParent()?.replace('VersionGate', { minVersion: '2.0.0' });
+      const versionGateFlag = data.flags?.find((f) => f.name === 'version_gate');
+      if (versionGateFlag) {
+        // Use DB app_version as source of truth for authenticated users.
+        // For anonymous path, fall back to the header version / APP_VERSION.
+        const currentVersion = data.user.app_version || APP_VERSION;
+        navigation.getParent()?.getParent()?.replace('VersionGate', {
+          currentVersion,
+          minVersion: versionGateFlag.min_version || '?.?.?',
+        });
         return;
       }
 
@@ -61,7 +78,7 @@ export default function HomeScreen({ navigation }) {
       setError('Registration failed. Please check your connection.');
       setLoading(false);
     }
-  }, [deviceId]);
+  }, [deviceId, token]);
 
   const loadPolls = useCallback(async () => {
     try {

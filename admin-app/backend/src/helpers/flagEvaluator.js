@@ -44,7 +44,7 @@ function evaluateFlags(flags, user) {
       if (!userQualifiesForRollout(user.id, flag.id, flag.rollout_pct)) return false;
       return true;
     })
-    .map((flag) => ({ id: flag.id, name: flag.name }));
+    .map((flag) => ({ id: flag.id, name: flag.name, min_version: flag.min_version || null }));
 }
 
 module.exports = { evaluateFlags, semverGte, userQualifiesForRollout };

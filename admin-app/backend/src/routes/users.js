@@ -112,6 +112,36 @@ router.post('/register', async (req, res) => {
   }
 });
 
+// GET /api/users/me/flags — evaluates flags for the authenticated user using their
+// DB app_version. Does NOT mutate app_version. This is the correct bootstrap call
+// for logged-in users where the DB value is the source of truth.
+router.get('/me/flags', requireAuth, async (req, res) => {
+  try {
+    const [rows] = await pool.query('SELECT * FROM users WHERE id = ?', [req.userId]);
+    if (rows.length === 0) return res.status(404).json({ error: 'User not found' });
+    const user = rows[0];
+
+    console.log(`[me/flags] userId: ${user.id} | email: ${user.email} | db app_version: ${user.app_version} | cohort: ${user.cohort}`);
+
+    const [flags] = await pool.query('SELECT * FROM feature_flags WHERE enabled = 1');
+    const qualifyingFlags = evaluateFlags(flags, user);
+
+    const { password_hash, ...safe } = user;
+    const versionConfig = getVersionConfig(safe.cohort);
+    return res.json({
+      user: {
+        ...safe,
+        assigned_version: versionConfig.version,
+        version_config: { version: versionConfig.version, label: versionConfig.label, theme: versionConfig.theme, features: versionConfig.features },
+      },
+      flags: qualifyingFlags,
+    });
+  } catch (err) {
+    console.error('GET /api/users/me/flags', err);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // GET /api/users/me — returns the authenticated user's profile
 router.get('/me', requireAuth, async (req, res) => {
   try {

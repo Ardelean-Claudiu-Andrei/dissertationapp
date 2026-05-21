@@ -42,14 +42,20 @@ export function AuthProvider({ children }) {
       AsyncStorage.setItem('auth_user', JSON.stringify(user)),
       AsyncStorage.setItem('user_id', user.id),
       AsyncStorage.setItem('user_cohort', user.cohort || ''),
+      AsyncStorage.setItem('assigned_version', user.assigned_version || '1.0.0'),
     ]);
     setToken(token);
     setUser(user);
   }
 
   async function signOut() {
-    // Keep device_id — it's needed immediately on the Register screen
-    await AsyncStorage.multiRemove(['auth_token', 'auth_user', 'user_id', 'user_cohort', 'vote_history']);
+    // Keep device_id — it's needed immediately on the Register screen.
+    // Keep app_version_override — it's a dev simulation of the installed build, device-scoped.
+    // Clear assigned_version — it's the experiment variant for the signed-in user.
+    await AsyncStorage.multiRemove([
+      'auth_token', 'auth_user', 'user_id', 'user_cohort',
+      'vote_history', 'assigned_version',
+    ]);
     setToken(null);
     setUser(null);
   }

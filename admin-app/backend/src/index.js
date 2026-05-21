@@ -165,4 +165,7 @@ app.get('/health', async (req, res) => {
 
 app.listen(PORT, () => {
   console.log(`Backend running on http://localhost:${PORT}`);
+  console.log(
+    `DB: ${process.env.DB_HOST || 'localhost'}:${process.env.DB_PORT || '3306'} / ${process.env.DB_NAME || 'dissertationapp'} (user: ${process.env.DB_USER || 'root'})`
+  );
 });

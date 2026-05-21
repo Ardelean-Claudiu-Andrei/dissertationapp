@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity,
   StyleSheet, SafeAreaView, ScrollView,
@@ -6,6 +6,7 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from '../../api/client';
+import { APP_VERSION, AVAILABLE_VERSIONS } from '../../config';
 import { useAuth } from '../../context/AuthContext';
 import { useFlags } from '../../context/FlagsContext';
 import { useVersion } from '../../context/VersionContext';
@@ -18,6 +19,23 @@ export default function LoginScreen({ navigation }) {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [simulatedVersion, setSimulatedVersion] = useState(APP_VERSION);
+
+  useEffect(() => {
+    if (!__DEV__) return;
+    AsyncStorage.getItem('app_version_override').then((v) => {
+      if (v) setSimulatedVersion(v);
+    });
+  }, []);
+
+  async function handleVersionSimulate(version) {
+    setSimulatedVersion(version);
+    if (version === APP_VERSION) {
+      await AsyncStorage.removeItem('app_version_override');
+    } else {
+      await AsyncStorage.setItem('app_version_override', version);
+    }
+  }
 
   async function handleLogin() {
     setError(null);
@@ -98,6 +116,26 @@ export default function LoginScreen({ navigation }) {
               <Text style={styles.footerLink}>Create one</Text>
             </TouchableOpacity>
           </View>
+          {/* {__DEV__ && (
+            <View style={styles.devPanel}>
+              <Text style={styles.devLabel}>DEV · Simulate app build</Text>
+              <View style={styles.devVersionRow}>
+                {AVAILABLE_VERSIONS.map((v) => (
+                  <TouchableOpacity
+                    key={v}
+                    style={[styles.devVersionBtn, simulatedVersion === v && styles.devVersionBtnActive]}
+                    onPress={() => handleVersionSimulate(v)}
+                    activeOpacity={0.75}
+                  >
+                    <Text style={[styles.devVersionText, simulatedVersion === v && styles.devVersionTextActive]}>
+                      {v}{v === APP_VERSION ? ' (real)' : ''}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+              <Text style={styles.devHint}>x-app-version trimis: {simulatedVersion}</Text>
+            </View>
+          )} */}
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -133,4 +171,18 @@ const styles = StyleSheet.create({
   footer: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center' },
   footerText: { color: '#6c757d', fontSize: 14 },
   footerLink: { color: '#e94560', fontWeight: '700', fontSize: 14 },
+  devPanel: {
+    marginTop: 24, backgroundColor: '#1a1a2e', borderRadius: 12, padding: 14,
+    borderWidth: 1, borderColor: '#e94560',
+  },
+  devLabel: { color: '#e94560', fontSize: 11, fontWeight: '700', letterSpacing: 0.8, marginBottom: 10 },
+  devVersionRow: { flexDirection: 'row', gap: 8, marginBottom: 8 },
+  devVersionBtn: {
+    flex: 1, borderRadius: 8, paddingVertical: 8, alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.07)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)',
+  },
+  devVersionBtnActive: { backgroundColor: '#e94560', borderColor: '#e94560' },
+  devVersionText: { color: '#a0aec0', fontSize: 12, fontWeight: '600' },
+  devVersionTextActive: { color: '#fff' },
+  devHint: { color: '#6c757d', fontSize: 11, textAlign: 'center' },
 });

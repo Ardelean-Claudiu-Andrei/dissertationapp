@@ -17,6 +17,9 @@ api.interceptors.request.use(async (config) => {
     AsyncStorage.getItem('app_version_override'),
   ]);
   if (deviceId) config.headers['x-device-id'] = deviceId;
+  // x-app-version must always reflect the real installed build.
+  // app_version_override is the dev simulation for testing version-gate behaviour.
+  // assigned_version (experiment variant V1/V2/V3) is never sent as the app build.
   config.headers['x-app-version'] = versionOverride || APP_VERSION;
   if (token) config.headers['Authorization'] = `Bearer ${token}`;
   return config;

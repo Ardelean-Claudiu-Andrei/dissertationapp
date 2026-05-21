@@ -152,7 +152,7 @@ router.post('/register', async (req, res) => {
  *         description: Invalid credentials
  */
 router.post('/login', async (req, res) => {
-  const { email, password, device_id, app_version } = req.body;
+  const { email, password, device_id } = req.body;
 
   if (!email || !password) {
     return res.status(400).json({ error: 'email and password are required' });
@@ -170,14 +170,15 @@ router.post('/login', async (req, res) => {
     }
 
     const valid = await bcrypt.compare(password, user.password_hash);
+    console.log(`[login] ${email} | x-app-version: ${req.appVersion} | db app_version: ${user.app_version} | cohort: ${user.cohort}`);
     if (!valid) {
       return res.status(401).json({ error: 'Invalid email or password' });
     }
 
-    // Update device_id and app_version on login.
-    // Only claim the device_id if it isn't already owned by a different account
-    // (multiple users can share the same simulator/device).
-    const newAppVersion = app_version || req.appVersion || user.app_version;
+    // On login, only claim the device_id if it isn't already owned by another account.
+    // app_version is intentionally NOT updated here — login is an auth event, not a
+    // device-registration event. app_version is updated by POST /api/users/register
+    // which runs on every app launch with the current x-app-version header.
     let newDeviceId = user.device_id;
     if (device_id && device_id !== user.device_id) {
       const [takenBy] = await pool.query(
@@ -186,10 +187,12 @@ router.post('/login', async (req, res) => {
       );
       if (takenBy.length === 0) newDeviceId = device_id;
     }
-    await pool.query(
-      'UPDATE users SET device_id = ?, app_version = ?, updated_at = NOW() WHERE id = ?',
-      [newDeviceId, newAppVersion, user.id]
-    );
+    if (newDeviceId !== user.device_id) {
+      await pool.query(
+        'UPDATE users SET device_id = ?, updated_at = NOW() WHERE id = ?',
+        [newDeviceId, user.id]
+      );
+    }
 
     const [refreshed] = await pool.query('SELECT * FROM users WHERE id = ?', [user.id]);
 
